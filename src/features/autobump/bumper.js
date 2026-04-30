@@ -1,6 +1,9 @@
 ﻿import { Client } from 'discord.js-selfbot-v13';
 import { ConfigManager } from '../../config/manager.js';
 import { Logger } from '../logging.js';
+import { applySelfbotCompatPatch } from '../selfbot-compat.js';
+
+applySelfbotCompatPatch();
 
 const DISBOARD_BOT_ID = '302050872383242240';
 const BUMP_INTERVAL_NORMAL = 2 * 60 * 60 * 1000 + 1 * 60 * 1000;

@@ -1,6 +1,9 @@
 ﻿import { Client } from 'discord.js-selfbot-v13';
 import { ConfigManager } from '../../config/manager.js';
 import { Logger } from '../logging.js';
+import { applySelfbotCompatPatch } from '../selfbot-compat.js';
+
+applySelfbotCompatPatch();
 
 export class AutoSender {
     constructor() {
