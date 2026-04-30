@@ -62,27 +62,40 @@
 
             <article class="card" style="grid-column: 1 / -1;">
                 <h2>Tokens configurés</h2>
-                <% if (tokens.tokens && tokens.tokens.length > 0) { %>
+                <% if (tokens && tokens.length > 0) { %>
                     <div class="table-wrap">
                         <table>
                             <thead>
                                 <tr>
                                     <th>Nom</th>
                                     <th>Groupe</th>
-                                    <th>Token masqué</th>
+                                    <th>Token</th>
                                     <th>Créé le</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <% tokens.tokens.forEach(token => { %>
+                                <% tokens.forEach(token => { %>
                                     <tr>
                                         <td><%= token.name %></td>
                                         <td><span class="badge accent"><%= token.group %></span></td>
-                                        <td><code><%= token.token.substring(0, 15) %>...</code></td>
+                                        <td>
+                                            <button
+                                                type="button"
+                                                class="token-secret"
+                                                data-token="<%= token.token %>"
+                                                onclick="copyToken(this)"
+                                                title="Cliquer pour copier"
+                                            >
+                                                <span><%= token.token %></span>
+                                            </button>
+                                        </td>
                                         <td><%= new Date(token.createdAt).toLocaleDateString('fr-FR') %></td>
                                         <td>
-                                            <button class="danger" onclick="removeToken('<%= token.id %>')">Supprimer</button>
+                                            <div class="actions">
+                                                <button type="button" onclick="editToken('<%= token.id %>')">Modifier</button>
+                                                <button type="button" class="danger" onclick="removeToken('<%= token.id %>')">Supprimer</button>
+                                            </div>
                                         </td>
                                     </tr>
                                 <% }); %>
@@ -116,20 +129,23 @@
             }
         });
 
-        async function removeToken(tokenId) {
-            if (confirm('Êtes-vous sûr ?')) {
-                const res = await fetch('/api/tokens/remove', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tokenId })
-                });
-                const result = await res.json();
-                if (result.success) {
-                    location.reload();
-                } else {
-                    alert('Erreur: ' + result.error);
-                }
+        async function copyToken(button) {
+            const token = button.dataset.token;
+            try {
+                await navigator.clipboard.writeText(token);
+                button.classList.add('copied');
+                setTimeout(() => button.classList.remove('copied'), 900);
+            } catch (err) {
+                alert('Impossible de copier le token.');
             }
+        }
+
+        function editToken(tokenId) {
+            alert('La modification des tokens n’est pas encore disponible.');
+        }
+
+        function removeToken(tokenId) {
+            alert('La suppression des tokens n’est pas encore disponible.');
         }
 
         async function createTokenGroup() {

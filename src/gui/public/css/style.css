@@ -470,6 +470,42 @@ code {
     word-break: break-all;
 }
 
+.token-secret {
+    width: min(360px, 100%);
+    min-height: 36px;
+    justify-content: flex-start;
+    padding: 0 12px;
+    color: rgba(247,251,255,0.82);
+    background: rgba(7, 20, 22, 0.38) !important;
+    border-color: var(--line-soft);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+    font-family: Consolas, "SFMono-Regular", Menlo, monospace;
+    font-size: 0.84rem;
+    font-weight: 700;
+    text-align: left;
+    overflow: hidden;
+}
+
+.token-secret span {
+    display: block;
+    max-width: 100%;
+    filter: blur(5px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: filter 0.15s ease;
+}
+
+.token-secret:hover span,
+.token-secret:focus-visible span {
+    filter: blur(0);
+}
+
+.token-secret.copied {
+    border-color: rgba(139, 242, 170, 0.62);
+    box-shadow: 0 0 0 4px rgba(139, 242, 170, 0.12), inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
 .badge {
     display: inline-flex;
     align-items: center;
