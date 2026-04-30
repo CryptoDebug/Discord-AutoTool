@@ -1,0 +1,34 @@
+{
+  "name": "discord-autotool",
+  "version": "1.0.0",
+  "description": "Discord Auto-Bump & Auto-Sender Tool",
+  "main": "src/main.js",
+  "type": "module",
+  "bin": {
+    "discord-autotool": "src/main.js"
+  },
+  "scripts": {
+    "start": "node src/main.js",
+    "gui": "node src/main.js --gui",
+    "cli": "node src/main.js --cli",
+    "dev": "node src/main.js --dev",
+    "build": "pkg . --targets latest-win --output discord-autotool.exe"
+  },
+  "keywords": ["discord", "bump", "autosender"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "discord.js-selfbot-v13": "^1.4.6",
+    "express": "^4.18.2",
+    "ejs": "^3.1.9",
+    "axios": "^1.6.2",
+    "chalk": "^5.3.0",
+    "inquirer": "^8.2.5",
+    "dotenv": "^16.3.1",
+    "node-cron": "^3.0.2",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  }
+}

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoSender - Discord AutoTool</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('header') %>
+    <%- include('nav') %>
+
+    <main class="container">
+        <section class="main-content">
+            <article class="card" style="grid-column: 1 / -1;">
+                <h2>Ajouter un message récurrent</h2>
+                <form id="addMessageForm" class="form-grid">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="content">Contenu du message</label>
+                        <textarea id="content" name="content" placeholder="Tapez votre message..." required rows="4"></textarea>
+                        <small>Variables disponibles: {date}, {time}, {timestamp}, {random}</small>
+                    </div>
+
+                    <label class="form-group check-row">
+                        <input type="checkbox" id="useGlobalTokens" name="useGlobalTokens">
+                        Utiliser tous les tokens
+                    </label>
+
+                    <div class="form-group" id="tokenGroupDiv">
+                        <label for="tokenGroupId">Groupe de tokens</label>
+                        <select id="tokenGroupId" name="tokenGroupId">
+                            <option value="">Sélectionner</option>
+                            <% groups.forEach(group => { %>
+                                <option value="<%= group %>"><%= group %></option>
+                            <% }); %>
+                        </select>
+                    </div>
+
+                    <label class="form-group check-row">
+                        <input type="checkbox" id="useGlobalChannels" name="useGlobalChannels">
+                        Utiliser tous les salons globaux
+                    </label>
+
+                    <div class="form-group" id="channelGroupDiv">
+                        <label for="channelGroupId">Groupe de salons</label>
+                        <select id="channelGroupId" name="channelGroupId">
+                            <option value="">Sélectionner</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="customDelay">Délai personnalisé (ms)</label>
+                        <input type="number" id="customDelay" name="customDelay" placeholder="3500" min="1000">
+                    </div>
+
+                    <button type="submit">Ajouter le message</button>
+                </form>
+            </article>
+
+            <article class="card" style="grid-column: 1 / -1;">
+                <h2>Messages configurés</h2>
+                <% if (config.messages && config.messages.length > 0) { %>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Message</th>
+                                    <th>Tokens</th>
+                                    <th>Salons</th>
+                                    <th>Délai</th>
+                                    <th>État</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% config.messages.forEach(msg => { %>
+                                    <tr>
+                                        <td><%= msg.content.substring(0, 50) %><%= msg.content.length > 50 ? '...' : '' %></td>
+                                        <td><%= msg.useGlobalTokens ? 'Tous' : (msg.tokenGroupId || 'Spécifiques') %></td>
+                                        <td><%= msg.useGlobalChannels ? 'Tous' : (msg.channelGroupId || 'Spécifiques') %></td>
+                                        <td><%= msg.customDelay ? msg.customDelay + 'ms' : 'Défaut' %></td>
+                                        <td>
+                                            <span class="badge <%= msg.enabled ? 'success' : 'danger' %>">
+                                                <%= msg.enabled ? 'Actif' : 'Inactif' %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <button class="danger" onclick="removeMessage('<%= msg.id %>')">Supprimer</button>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="empty-state">Aucun message configuré.</div>
+                <% } %>
+            </article>
+
+            <article class="card" style="grid-column: 1 / -1;">
+                <h2>Contrôle</h2>
+                <div class="control-grid">
+                    <button class="success" onclick="enableSender()">Démarrer</button>
+                    <button class="danger" onclick="disableSender()">Arrêter</button>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <%- include('footer') %>
+
+    <script>
+        document.getElementById('useGlobalTokens').addEventListener('change', (e) => {
+            document.getElementById('tokenGroupDiv').style.display = e.target.checked ? 'none' : 'flex';
+        });
+
+        document.getElementById('useGlobalChannels').addEventListener('change', (e) => {
+            document.getElementById('channelGroupDiv').style.display = e.target.checked ? 'none' : 'flex';
+        });
+
+        document.getElementById('addMessageForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = new FormData(e.target);
+            const res = await fetch('/api/sender/message/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.fromEntries(data))
+            });
+            const result = await res.json();
+            if (result.success) {
+                alert('Message ajouté !');
+                location.reload();
+            } else {
+                alert('Erreur: ' + result.error);
+            }
+        });
+
+        async function removeMessage(messageId) {
+            if (confirm('Êtes-vous sûr ?')) {
+                alert('La suppression des messages n’est pas encore disponible.');
+            }
+        }
+
+        async function enableSender() {
+            const res = await fetch('/api/sender/enable', { method: 'POST' });
+            const result = await res.json();
+            if (result.success) {
+                alert('Sender démarré !');
+                location.reload();
+            }
+        }
+
+        async function disableSender() {
+            const res = await fetch('/api/sender/disable', { method: 'POST' });
+            const result = await res.json();
+            if (result.success) {
+                alert('Sender arrêté !');
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>

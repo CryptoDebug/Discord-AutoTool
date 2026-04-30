@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoBump - Discord AutoTool</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('header') %>
+    <%- include('nav') %>
+
+    <main class="container">
+        <section class="main-content">
+            <article class="card" style="grid-column: 1 / -1;">
+                <h2>Paramètres généraux</h2>
+                <form id="bumpSettingsForm" class="form-grid">
+                    <div class="form-group">
+                        <label for="humanize">Humanisation</label>
+                        <select id="humanize" name="humanize">
+                            <option value="true" <%= config.settings.humanize ? 'selected' : '' %>>Activée avec délai aléatoire</option>
+                            <option value="false" <%= !config.settings.humanize ? 'selected' : '' %>>Désactivée</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="humanizeMin">Minimum en minutes</label>
+                        <input type="number" id="humanizeMin" name="humanizeMin" value="<%= config.settings.humanizeMin %>" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="humanizeMax">Maximum en minutes</label>
+                        <input type="number" id="humanizeMax" name="humanizeMax" value="<%= config.settings.humanizeMax %>" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="maxServersPerToken">Serveurs max par token</label>
+                        <input type="number" id="maxServersPerToken" name="maxServersPerToken" value="<%= config.settings.maxServersPerToken %>" min="1">
+                    </div>
+                    <button type="submit">Enregistrer</button>
+                </form>
+            </article>
+
+            <article class="card" style="grid-column: 1 / -1;">
+                <h2>Ajouter un serveur bump</h2>
+                <form id="addServerForm" class="form-grid">
+                    <div class="form-group">
+                        <label for="serverId">ID serveur</label>
+                        <input type="text" id="serverId" name="serverId" placeholder="123456789" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="bumpChannelId">ID salon bump</label>
+                        <input type="text" id="bumpChannelId" name="bumpChannelId" placeholder="987654321" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tokenId">Token à utiliser</label>
+                        <select id="tokenId" name="tokenId" required>
+                            <option value="">Sélectionner un token</option>
+                            <% tokens.forEach(token => { %>
+                                <option value="<%= token.id %>"><%= token.name %> (<%= token.group %>)</option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="serverName">Nom du serveur</label>
+                        <input type="text" id="serverName" name="name" placeholder="Mon serveur">
+                    </div>
+                    <button type="submit">Ajouter</button>
+                </form>
+            </article>
+
+            <article class="card" style="grid-column: 1 / -1;">
+                <h2>Serveurs configurés</h2>
+                <% if (config.servers && config.servers.length > 0) { %>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>ID serveur</th>
+                                    <th>Salon</th>
+                                    <th>Token</th>
+                                    <th>État</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% config.servers.forEach(server => {
+                                    const token = tokens.find(t => t.id === server.tokenId);
+                                %>
+                                    <tr>
+                                        <td><%= server.name %></td>
+                                        <td><code><%= server.serverId %></code></td>
+                                        <td><code><%= server.bumpChannelId %></code></td>
+                                        <td><%= token ? token.name : 'N/A' %></td>
+                                        <td>
+                                            <span class="badge <%= server.enabled ? 'success' : 'danger' %>">
+                                                <%= server.enabled ? 'Actif' : 'Inactif' %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="actions">
+                                                <button type="button" class="danger" onclick="removeServer('<%= server.id %>')">Supprimer</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="empty-state">Aucun serveur configuré.</div>
+                <% } %>
+            </article>
+
+            <article class="card" style="grid-column: 1 / -1;">
+                <h2>Contrôle</h2>
+                <div class="control-grid">
+                    <button id="enableBtn" class="success" onclick="enableBump()">Démarrer</button>
+                    <button id="disableBtn" class="danger" onclick="disableBump()">Arrêter</button>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <%- include('footer') %>
+
+    <script>
+        document.getElementById('bumpSettingsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = new FormData(e.target);
+            const res = await fetch('/api/bump/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.fromEntries(data))
+            });
+            const result = await res.json();
+            alert(result.success ? 'Paramètres enregistrés !' : 'Erreur: ' + result.error);
+        });
+
+        document.getElementById('addServerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = new FormData(e.target);
+            const res = await fetch('/api/bump/server/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.fromEntries(data))
+            });
+            const result = await res.json();
+            if (result.success) {
+                alert('Serveur ajouté !');
+                location.reload();
+            } else {
+                alert('Erreur: ' + result.error);
+            }
+        });
+
+        async function removeServer(serverId) {
+            if (confirm('Êtes-vous sûr ?')) {
+                const res = await fetch('/api/bump/server/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ serverId })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert('Erreur: ' + result.error);
+                }
+            }
+        }
+
+        async function enableBump() {
+            const res = await fetch('/api/bump/enable', { method: 'POST' });
+            const result = await res.json();
+            if (result.success) {
+                alert('Bump démarré !');
+                location.reload();
+            }
+        }
+
+        async function disableBump() {
+            const res = await fetch('/api/bump/disable', { method: 'POST' });
+            const result = await res.json();
+            if (result.success) {
+                alert('Bump arrêté !');
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>

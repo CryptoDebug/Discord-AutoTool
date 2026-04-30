@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tokens - Discord AutoTool</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('header') %>
+    <%- include('nav') %>
+
+    <main class="container">
+        <section class="main-content">
+            <article class="card">
+                <h2>Groupes de tokens</h2>
+                <div class="form-group">
+                    <label for="newGroupName">Ajouter un groupe</label>
+                    <div class="inline-control">
+                        <input type="text" id="newGroupName" placeholder="Nom du groupe">
+                        <button onclick="createTokenGroup()">Créer</button>
+                    </div>
+                </div>
+
+                <% if (groups.tokenGroups && groups.tokenGroups.length > 0) { %>
+                    <div class="chip-grid" style="margin-top: 16px;">
+                        <% groups.tokenGroups.forEach(group => { %>
+                            <div class="chip">
+                                <span class="badge accent"><%= group %></span>
+                                <button class="danger" onclick="deleteTokenGroup('<%= group %>')" style="margin-top: 10px; width: 100%;">Supprimer</button>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="empty-state" style="margin-top: 16px;">Aucun groupe personnalisé.</div>
+                <% } %>
+            </article>
+
+            <article class="card">
+                <h2>Ajouter un token</h2>
+                <form id="addTokenForm" class="form-grid">
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="token">Token Discord</label>
+                        <input type="password" id="token" name="token" placeholder="MTA5..." required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tokenName">Nom</label>
+                        <input type="text" id="tokenName" name="name" placeholder="Compte principal">
+                    </div>
+                    <div class="form-group">
+                        <label for="tokenGroup">Groupe</label>
+                        <select id="tokenGroup" name="group">
+                            <option value="default">default</option>
+                            <% if (groups.tokenGroups) { groups.tokenGroups.forEach(group => { %>
+                                <option value="<%= group %>"><%= group %></option>
+                            <% }); } %>
+                        </select>
+                    </div>
+                    <button type="submit">Ajouter</button>
+                </form>
+            </article>
+
+            <article class="card" style="grid-column: 1 / -1;">
+                <h2>Tokens configurés</h2>
+                <% if (tokens.tokens && tokens.tokens.length > 0) { %>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nom</th>
+                                    <th>Groupe</th>
+                                    <th>Token masqué</th>
+                                    <th>Créé le</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% tokens.tokens.forEach(token => { %>
+                                    <tr>
+                                        <td><%= token.name %></td>
+                                        <td><span class="badge accent"><%= token.group %></span></td>
+                                        <td><code><%= token.token.substring(0, 15) %>...</code></td>
+                                        <td><%= new Date(token.createdAt).toLocaleDateString('fr-FR') %></td>
+                                        <td>
+                                            <button class="danger" onclick="removeToken('<%= token.id %>')">Supprimer</button>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="empty-state">Aucun token configuré.</div>
+                <% } %>
+            </article>
+        </section>
+    </main>
+
+    <%- include('footer') %>
+
+    <script>
+        document.getElementById('addTokenForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = new FormData(e.target);
+            const res = await fetch('/api/tokens/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.fromEntries(data))
+            });
+            const result = await res.json();
+            if (result.success) {
+                alert('Token ajouté !');
+                location.reload();
+            } else {
+                alert('Erreur: ' + result.error);
+            }
+        });
+
+        async function removeToken(tokenId) {
+            if (confirm('Êtes-vous sûr ?')) {
+                const res = await fetch('/api/tokens/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tokenId })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert('Erreur: ' + result.error);
+                }
+            }
+        }
+
+        async function createTokenGroup() {
+            const groupName = document.getElementById('newGroupName').value;
+            if (!groupName) {
+                alert('Entrez un nom de groupe');
+                return;
+            }
+            const res = await fetch('/api/tokens/group/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupName })
+            });
+            const result = await res.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + result.error);
+            }
+        }
+
+        async function deleteTokenGroup(groupName) {
+            if (confirm('Êtes-vous sûr ? Cela supprimera tous les tokens du groupe.')) {
+                const res = await fetch('/api/tokens/group/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ groupName })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert('Erreur: ' + result.error);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

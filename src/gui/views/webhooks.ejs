@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhooks - Discord AutoTool</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('header') %>
+    <%- include('nav') %>
+
+    <main class="container">
+        <section class="main-content">
+            <article class="card" style="grid-column: 1 / -1;">
+                <h2>Configuration des webhooks Discord</h2>
+
+                <div class="notice" style="margin-bottom: 18px;">
+                    <h3>Instructions</h3>
+                    <ol>
+                        <li>Ouvrez les paramètres du serveur Discord concerné.</li>
+                        <li>Allez dans Intégrations, puis Webhooks.</li>
+                        <li>Créez un webhook et copiez son URL.</li>
+                        <li>Collez l'URL dans le champ ci-dessous.</li>
+                    </ol>
+                </div>
+
+                <form id="webhookForm" class="form-grid">
+                    <label class="form-group check-row">
+                        <input type="checkbox" id="enabled" name="enabled" <%= webhooks.enabled ? 'checked' : '' %>>
+                        Webhooks activés
+                    </label>
+
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label for="url">URL du webhook</label>
+                        <input type="url" id="url" name="url" placeholder="https://discord.com/api/webhooks/..." value="<%= webhooks.url %>">
+                    </div>
+
+                    <label class="form-group check-row">
+                        <input type="checkbox" id="logErrors" name="logErrors" <%= webhooks.logErrors ? 'checked' : '' %>>
+                        Logger les erreurs
+                    </label>
+
+                    <label class="form-group check-row">
+                        <input type="checkbox" id="logSuccess" name="logSuccess" <%= webhooks.logSuccess ? 'checked' : '' %>>
+                        Logger les succès
+                    </label>
+
+                    <button type="submit">Enregistrer</button>
+                </form>
+            </article>
+
+            <article class="card" style="grid-column: 1 / -1;">
+                <h2>Événements loggés</h2>
+                <div class="event-grid">
+                    <div class="event-card">
+                        <span class="badge success">Succès</span>
+                        <ul style="margin-top: 12px;">
+                            <li>Bump effectué</li>
+                            <li>Message envoyé</li>
+                            <li>Client connecté</li>
+                        </ul>
+                    </div>
+
+                    <div class="event-card">
+                        <span class="badge danger">Erreurs</span>
+                        <ul style="margin-top: 12px;">
+                            <li>Compte désactivé</li>
+                            <li>Permissions insuffisantes</li>
+                            <li>Salon supprimé</li>
+                            <li>Rate limited</li>
+                        </ul>
+                    </div>
+
+                    <div class="event-card">
+                        <span class="badge accent">Avertissements</span>
+                        <ul style="margin-top: 12px;">
+                            <li>Slowmode détecté</li>
+                            <li>Compte mute</li>
+                            <li>Salon non textuel</li>
+                        </ul>
+                    </div>
+                </div>
+            </article>
+        </section>
+    </main>
+
+    <%- include('footer') %>
+
+    <script>
+        document.getElementById('webhookForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = new FormData(e.target);
+            const res = await fetch('/api/webhooks/config', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.fromEntries(data))
+            });
+            const result = await res.json();
+            alert(result.success ? 'Webhooks configurés !' : 'Erreur: ' + result.error);
+        });
+    </script>
+</body>
+</html>

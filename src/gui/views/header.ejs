@@ -1,0 +1,13 @@
+<header class="app-header">
+    <div class="app-header__inner">
+        <div>
+            <div class="eyebrow">Discord AutoTool</div>
+            <h1>Control Center</h1>
+            <p>Gestion AutoBump, AutoSender, tokens et webhooks.</p>
+        </div>
+        <span class="status <%= (typeof isRunning !== 'undefined' && isRunning) ? 'running' : 'stopped' %>">
+            <span class="status-dot"></span>
+            <%= (typeof isRunning !== 'undefined' && isRunning) ? 'En cours' : 'Arrêté' %>
+        </span>
+    </div>
+</header>

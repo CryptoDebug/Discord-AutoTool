@@ -1,0 +1,13 @@
+node_modules/
+*.exe
+.DS_Store
+.env
+.env.local
+*.log
+config/*.json
+!config/example.json
+.vscode/
+00-LIRE-EN-PREMIER.md
+ARCHITECTURE.md
+FILE-STRUCTURE.md
+SUMMARY.md
