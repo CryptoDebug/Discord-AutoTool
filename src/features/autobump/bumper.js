@@ -8,6 +8,8 @@ applySelfbotCompatPatch();
 const DISBOARD_BOT_ID = '302050872383242240';
 const BUMP_INTERVAL_NORMAL = 2 * 60 * 60 * 1000 + 1 * 60 * 1000;
 const BUMP_INTERVAL_HUMANIZED_BASE = 2 * 60 * 60 * 1000;
+const READY_SETTLE_DELAY = 3000;
+const SLASH_RETRY_DELAY = 10000;
 
 export class AutoBumper {
     constructor() {
@@ -62,6 +64,8 @@ export class AutoBumper {
                 await client.login(tokenObj.token);
             }
 
+            await this.waitForReady(client);
+
             const channel = await client.channels.fetch(server.bumpChannelId);
             if (!channel) {
                 await this.logger.error('Salon bump introuvable', {
@@ -90,6 +94,11 @@ export class AutoBumper {
     async startBumpLoop(client, server, settings) {
         const clientKey = `${client.user.id}-${server.id}`;
 
+        if (this.bumpSchedules.has(clientKey)) {
+            return;
+        }
+
+        await this.wait(READY_SETTLE_DELAY);
         await this.performBump(client, server);
 
         const interval = setInterval(async () => {
@@ -101,8 +110,9 @@ export class AutoBumper {
         this.bumpSchedules.set(clientKey, interval);
     }
 
-    async performBump(client, server) {
+    async performBump(client, server, retry = true) {
         try {
+            await this.waitForReady(client);
             const channel = await client.channels.fetch(server.bumpChannelId);
             
             if (!channel.isText()) {
@@ -117,8 +127,58 @@ export class AutoBumper {
             });
 
         } catch (err) {
+            if (retry && this.shouldRetrySlashCommand(err)) {
+                await this.logger.warn('Commande /bump indisponible, nouvelle tentative dans 10 secondes', {
+                    serverId: server.id,
+                    error: err.message
+                });
+                await this.wait(SLASH_RETRY_DELAY);
+                return this.performBump(client, server, false);
+            }
+
             await this.handleBumpError(err, server, client);
         }
+    }
+
+    waitForReady(client) {
+        if (client.readyAt && client.user) {
+            return Promise.resolve();
+        }
+
+        return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                cleanup();
+                reject(new Error('Client Discord non prêt après 30 secondes'));
+            }, 30000);
+
+            const onReady = () => {
+                cleanup();
+                resolve();
+            };
+
+            const onError = (err) => {
+                cleanup();
+                reject(err);
+            };
+
+            const cleanup = () => {
+                clearTimeout(timeout);
+                client.off('ready', onReady);
+                client.off('error', onError);
+            };
+
+            client.once('ready', onReady);
+            client.once('error', onError);
+        });
+    }
+
+    wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    shouldRetrySlashCommand(err) {
+        const message = err.message.toLowerCase();
+        return message.includes('application slash command') || message.includes('command bump is not found');
     }
 
     async handleBumpError(err, server, client) {
