@@ -119,6 +119,7 @@ export class AutoBumper {
                 throw new Error('Salon non textuel');
             }
 
+            await this.prepareSlashBot(client);
             await channel.sendSlash(DISBOARD_BOT_ID, 'bump');
             
             await this.logger.success('Bump effectué', {
@@ -138,6 +139,20 @@ export class AutoBumper {
 
             await this.handleBumpError(err, server, client);
         }
+    }
+
+    async prepareSlashBot(client) {
+        const bot = await client.users.fetch(DISBOARD_BOT_ID, { force: true });
+
+        if (!bot?.bot || !bot.applications) {
+            throw new Error('Disboard est introuvable ou ses commandes slash sont indisponibles');
+        }
+
+        if (bot.applications.cache.size === 0) {
+            await bot.applications.fetch();
+        }
+
+        return bot;
     }
 
     waitForReady(client) {
@@ -178,7 +193,9 @@ export class AutoBumper {
 
     shouldRetrySlashCommand(err) {
         const message = err.message.toLowerCase();
-        return message.includes('application slash command') || message.includes('command bump is not found');
+        return message.includes('application slash command') ||
+            message.includes('command bump is not found') ||
+            message.includes('commandes slash sont indisponibles');
     }
 
     async handleBumpError(err, server, client) {
