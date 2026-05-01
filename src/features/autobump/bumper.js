@@ -98,16 +98,20 @@ export class AutoBumper {
             return;
         }
 
+        const scheduleNextBump = () => {
+            const delay = this.calculateDelay(settings);
+            const timeout = setTimeout(async () => {
+                await this.performBump(client, server);
+                scheduleNextBump();
+            }, delay);
+
+            this.bumpSchedules.set(clientKey, timeout);
+        };
+
+        this.bumpSchedules.set(clientKey, null);
         await this.wait(READY_SETTLE_DELAY);
         await this.performBump(client, server);
-
-        const interval = setInterval(async () => {
-            const delay = this.calculateDelay(settings);
-            await new Promise(res => setTimeout(res, delay));
-            await this.performBump(client, server);
-        }, this.calculateDelay(settings));
-
-        this.bumpSchedules.set(clientKey, interval);
+        scheduleNextBump();
     }
 
     async performBump(client, server, retry = true) {
@@ -261,8 +265,10 @@ export class AutoBumper {
             }
         }
 
-        for (const [key, interval] of this.bumpSchedules.entries()) {
-            clearInterval(interval);
+        for (const [key, timeout] of this.bumpSchedules.entries()) {
+            if (timeout) {
+                clearTimeout(timeout);
+            }
         }
 
         this.activeClients.clear();
