@@ -6,8 +6,8 @@ import { applySelfbotCompatPatch } from '../selfbot-compat.js';
 applySelfbotCompatPatch();
 
 const DISBOARD_BOT_ID = '302050872383242240';
-const BUMP_INTERVAL_NORMAL = 2 * 60 * 60 * 1000 + 1 * 60 * 1000;
-const BUMP_INTERVAL_HUMANIZED_BASE = 2 * 60 * 60 * 1000;
+const SAME_SERVER_INTERVAL = 2 * 60 * 60 * 1000 + 4 * 60 * 1000;
+const DIFFERENT_SERVER_INTERVAL = 31 * 60 * 1000;
 const READY_SETTLE_DELAY = 3000;
 const SLASH_RETRY_DELAY = 10000;
 
@@ -33,21 +33,30 @@ export class AutoBumper {
             return;
         }
 
-        for (const server of config.servers) {
-            if (!server.enabled) continue;
+        const enabledServers = config.servers.filter(server => server.enabled);
+        const serversByToken = new Map();
 
+        for (const server of enabledServers) {
             const token = tokensConfig.tokens.find(t => t.id === server.tokenId);
             if (!token) {
                 await this.logger.error('Token non trouvé', { serverId: server.id });
                 continue;
             }
 
-            await this.bumpServer(server, token, config.settings);
+            if (!serversByToken.has(token.id)) {
+                serversByToken.set(token.id, { token, servers: [] });
+            }
+
+            serversByToken.get(token.id).servers.push(server);
+        }
+
+        for (const { token, servers } of serversByToken.values()) {
+            await this.startTokenBumpLoop(token, servers, config.settings);
         }
     }
 
-    async bumpServer(server, tokenObj, settings) {
-        const clientKey = `${tokenObj.id}-${server.id}`;
+    async startTokenBumpLoop(tokenObj, servers, settings) {
+        const clientKey = tokenObj.id;
 
         try {
             let client = this.activeClients.get(clientKey);
@@ -57,7 +66,7 @@ export class AutoBumper {
 
                 client.once('ready', () => {
                     this.logger.info(`Client connecté: ${client.user.tag}`, {
-                        server: server.id
+                        tokenId: tokenObj.id
                     });
                 });
 
@@ -66,51 +75,71 @@ export class AutoBumper {
 
             await this.waitForReady(client);
 
-            const channel = await client.channels.fetch(server.bumpChannelId);
-            if (!channel) {
-                await this.logger.error('Salon bump introuvable', {
-                    channelId: server.bumpChannelId
+            const validServers = [];
+
+            for (const server of servers) {
+                const channel = await client.channels.fetch(server.bumpChannelId);
+                if (!channel) {
+                    await this.logger.error('Salon bump introuvable', {
+                        channelId: server.bumpChannelId,
+                        serverId: server.id
+                    });
+                    continue;
+                }
+
+                if (!channel.isText()) {
+                    await this.logger.error('Le salon bump n\'est pas textuel', {
+                        channelId: server.bumpChannelId,
+                        serverId: server.id
+                    });
+                    continue;
+                }
+
+                validServers.push(server);
+            }
+
+            if (validServers.length === 0) {
+                await this.logger.warn('Aucun serveur valide pour ce token', {
+                    tokenId: tokenObj.id
                 });
                 return;
             }
 
-            if (!channel.isText()) {
-                await this.logger.error('Le salon bump n\'est pas textuel', {
-                    channelId: server.bumpChannelId
-                });
-                return;
-            }
-
-            this.startBumpLoop(client, server, settings);
+            await this.startBumpLoop(client, tokenObj.id, validServers, settings);
 
         } catch (err) {
             await this.logger.error('Erreur initialisation bump', {
                 error: err.message,
-                serverId: server.id
+                tokenId: tokenObj.id
             });
         }
     }
 
-    async startBumpLoop(client, server, settings) {
-        const clientKey = `${client.user.id}-${server.id}`;
+    async startBumpLoop(client, tokenId, servers, settings) {
+        const scheduleKey = tokenId;
 
-        if (this.bumpSchedules.has(clientKey)) {
+        if (this.bumpSchedules.has(scheduleKey)) {
             return;
         }
 
+        let currentIndex = 0;
+
         const scheduleNextBump = () => {
-            const delay = this.calculateDelay(settings);
+            const delay = this.calculateDelay(settings, servers.length, currentIndex);
             const timeout = setTimeout(async () => {
+                const server = servers[currentIndex];
+                currentIndex = (currentIndex + 1) % servers.length;
                 await this.performBump(client, server);
                 scheduleNextBump();
             }, delay);
 
-            this.bumpSchedules.set(clientKey, timeout);
+            this.bumpSchedules.set(scheduleKey, timeout);
         };
 
-        this.bumpSchedules.set(clientKey, null);
+        this.bumpSchedules.set(scheduleKey, null);
         await this.wait(READY_SETTLE_DELAY);
-        await this.performBump(client, server);
+        await this.performBump(client, servers[currentIndex]);
+        currentIndex = (currentIndex + 1) % servers.length;
         scheduleNextBump();
     }
 
@@ -202,10 +231,9 @@ export class AutoBumper {
             await this.configManager.write('bump', config);
 
         } else if (errorMsg.includes('rate limit') || errorMsg.includes('429')) {
-            await this.logger.warn('Rate limited, retry dans 5 min', {
+            await this.logger.warn('Rate limited, prochain bump selon le planning', {
                 serverId: server.id
             });
-            setTimeout(() => this.performBump(client, server), 5 * 60 * 1000);
 
         } else if (errorMsg.includes('permission') || errorMsg.includes('not allowed')) {
             await this.logger.error('Permissions insuffisantes', {
@@ -221,15 +249,41 @@ export class AutoBumper {
         }
     }
 
-    calculateDelay(settings) {
-        if (!settings.humanize) {
-            return BUMP_INTERVAL_NORMAL;
+    calculateDelay(settings, serverCount = 1, nextIndex = 0) {
+        const maxServersPerToken = settings?.maxServersPerToken || 4;
+        let delay;
+
+        if (serverCount > maxServersPerToken) {
+            delay = DIFFERENT_SERVER_INTERVAL;
+        } else if (serverCount <= 1) {
+            delay = SAME_SERVER_INTERVAL;
+        } else if (nextIndex === 0) {
+            const timeAlreadySpentInRound = DIFFERENT_SERVER_INTERVAL * (serverCount - 1);
+            delay = Math.max(
+                DIFFERENT_SERVER_INTERVAL,
+                SAME_SERVER_INTERVAL - timeAlreadySpentInRound
+            );
+        } else {
+            delay = DIFFERENT_SERVER_INTERVAL;
         }
 
+        return delay + this.calculateHumanizeDelay(settings);
+    }
+
+    calculateHumanizeDelay(settings) {
+        if (!settings?.humanize) {
+            return 0;
+        }
+
+        const min = Number.isFinite(settings.humanizeMin) ? settings.humanizeMin : 1;
+        const max = Number.isFinite(settings.humanizeMax) ? settings.humanizeMax : min;
+        const minMinutes = Math.max(0, Math.min(min, max));
+        const maxMinutes = Math.max(minMinutes, max);
         const randomMinutes = Math.floor(
-            Math.random() * (settings.humanizeMax - settings.humanizeMin + 1) + settings.humanizeMin
+            Math.random() * (maxMinutes - minMinutes + 1) + minMinutes
         );
-        return BUMP_INTERVAL_HUMANIZED_BASE + (randomMinutes * 60 * 1000);
+
+        return randomMinutes * 60 * 1000;
     }
 
     async validateToken(token, channelId) {
