@@ -11,9 +11,23 @@
     <%- include('nav') %>
 
     <main class="container">
+        <section class="page-head">
+            <div>
+                <div class="section-kicker">Tokens</div>
+                <h2>Accès et groupes</h2>
+                <p>Organisez les comptes par usage, gardez les tokens masqués et retrouvez rapidement chaque entrée.</p>
+            </div>
+            <span class="badge accent"><%= tokens ? tokens.length : 0 %> token(s)</span>
+        </section>
+
         <section class="main-content">
             <article class="card">
-                <h2>Groupes de tokens</h2>
+                <div class="card-header">
+                    <div>
+                        <div class="card-topline">Groupes</div>
+                        <h2>Groupes de tokens</h2>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label for="newGroupName">Ajouter un groupe</label>
                     <div class="inline-control">
@@ -23,23 +37,28 @@
                 </div>
 
                 <% if (groups.tokenGroups && groups.tokenGroups.length > 0) { %>
-                    <div class="chip-grid" style="margin-top: 16px;">
+                    <div class="chip-grid">
                         <% groups.tokenGroups.forEach(group => { %>
                             <div class="chip">
                                 <span class="badge accent"><%= group %></span>
-                                <button class="danger" onclick="deleteTokenGroup('<%= group %>')" style="margin-top: 10px; width: 100%;">Supprimer</button>
+                                <button class="danger" onclick="deleteTokenGroup('<%= group %>')">Supprimer</button>
                             </div>
                         <% }); %>
                     </div>
                 <% } else { %>
-                    <div class="empty-state" style="margin-top: 16px;">Aucun groupe personnalisé.</div>
+                    <div class="empty-state">Aucun groupe personnalisé.</div>
                 <% } %>
             </article>
 
             <article class="card">
-                <h2>Ajouter un token</h2>
+                <div class="card-header">
+                    <div>
+                        <div class="card-topline">Nouveau token</div>
+                        <h2>Ajouter un token</h2>
+                    </div>
+                </div>
                 <form id="addTokenForm" class="form-grid">
-                    <div class="form-group" style="grid-column: 1 / -1;">
+                    <div class="form-group span-full">
                         <label for="token">Token Discord</label>
                         <input type="password" id="token" name="token" placeholder="MTA5..." required>
                     </div>
@@ -60,8 +79,13 @@
                 </form>
             </article>
 
-            <article class="card" style="grid-column: 1 / -1;">
-                <h2>Tokens configurés</h2>
+            <article class="card span-full">
+                <div class="card-header">
+                    <div>
+                        <div class="card-topline">Inventaire</div>
+                        <h2>Tokens configurés</h2>
+                    </div>
+                </div>
                 <% if (tokens && tokens.length > 0) { %>
                     <div class="table-wrap">
                         <table>
@@ -77,7 +101,7 @@
                             <tbody>
                                 <% tokens.forEach(token => { %>
                                     <tr>
-                                        <td><%= token.name %></td>
+                                        <td><strong><%= token.name %></strong></td>
                                         <td><span class="badge accent"><%= token.group %></span></td>
                                         <td>
                                             <button
@@ -141,11 +165,11 @@
         }
 
         function editToken(tokenId) {
-            alert('La modification des tokens n’est pas encore disponible.');
+            alert('La modification des tokens n'est pas encore disponible.');
         }
 
         function removeToken(tokenId) {
-            alert('La suppression des tokens n’est pas encore disponible.');
+            alert('La suppression des tokens n'est pas encore disponible.');
         }
 
         async function createTokenGroup() {

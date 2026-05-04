@@ -11,9 +11,34 @@
     <%- include('nav') %>
 
     <main class="container">
+        <section class="page-head">
+            <div>
+                <div class="section-kicker">AutoBump</div>
+                <h2>Serveurs et planification</h2>
+                <p>Réglez les délais, associez les serveurs aux tokens et démarrez le bump automatique.</p>
+            </div>
+            <span class="badge <%= config.enabled ? 'success' : 'danger' %>"><%= config.enabled ? 'Actif' : 'Inactif' %></span>
+        </section>
+
         <section class="main-content">
-            <article class="card" style="grid-column: 1 / -1;">
-                <h2>Paramètres généraux</h2>
+            <article class="card span-full control-card">
+                <div>
+                    <div class="card-topline">Contrôle</div>
+                    <h2>Lancer ou arrêter AutoBump</h2>
+                </div>
+                <div class="actions control-actions">
+                    <button id="enableBtn" class="success" onclick="enableBump()">Démarrer</button>
+                    <button id="disableBtn" class="danger" onclick="disableBump()">Arrêter</button>
+                </div>
+            </article>
+
+            <article class="card span-full">
+                <div class="card-header">
+                    <div>
+                        <div class="card-topline">Paramètres</div>
+                        <h2>Comportement général</h2>
+                    </div>
+                </div>
                 <form id="bumpSettingsForm" class="form-grid">
                     <div class="form-group">
                         <label for="humanize">Humanisation</label>
@@ -38,8 +63,13 @@
                 </form>
             </article>
 
-            <article class="card" style="grid-column: 1 / -1;">
-                <h2>Ajouter un serveur bump</h2>
+            <article class="card span-full">
+                <div class="card-header">
+                    <div>
+                        <div class="card-topline">Configuration</div>
+                        <h2>Ajouter un serveur bump</h2>
+                    </div>
+                </div>
                 <form id="addServerForm" class="form-grid">
                     <div class="form-group">
                         <label for="serverId">ID serveur</label>
@@ -66,8 +96,14 @@
                 </form>
             </article>
 
-            <article class="card" style="grid-column: 1 / -1;">
-                <h2>Serveurs configurés</h2>
+            <article class="card span-full">
+                <div class="card-header">
+                    <div>
+                        <div class="card-topline">Inventaire</div>
+                        <h2>Serveurs configurés</h2>
+                    </div>
+                    <span class="badge accent"><%= config.servers ? config.servers.length : 0 %> serveur(s)</span>
+                </div>
                 <% if (config.servers && config.servers.length > 0) { %>
                     <div class="table-wrap">
                         <table>
@@ -86,7 +122,7 @@
                                     const token = tokens.find(t => t.id === server.tokenId);
                                 %>
                                     <tr>
-                                        <td><%= server.name %></td>
+                                        <td><strong><%= server.name %></strong></td>
                                         <td><code><%= server.serverId %></code></td>
                                         <td><code><%= server.bumpChannelId %></code></td>
                                         <td><%= token ? token.name : 'N/A' %></td>
@@ -110,13 +146,6 @@
                 <% } %>
             </article>
 
-            <article class="card" style="grid-column: 1 / -1;">
-                <h2>Contrôle</h2>
-                <div class="control-grid">
-                    <button id="enableBtn" class="success" onclick="enableBump()">Démarrer</button>
-                    <button id="disableBtn" class="danger" onclick="disableBump()">Arrêter</button>
-                </div>
-            </article>
         </section>
     </main>
 

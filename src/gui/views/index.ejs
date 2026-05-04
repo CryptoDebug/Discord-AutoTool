@@ -11,32 +11,36 @@
     <%- include('nav') %>
 
     <main class="container">
-        <section class="main-content">
-            <article class="card dashboard-hero" style="grid-column: 1 / -1;">
+        <section class="page-head">
+            <div>
                 <div class="section-kicker">Vue d'ensemble</div>
                 <h2>État du système</h2>
-                <p>Les indicateurs essentiels sont regroupés ici pour lire rapidement l'activité du tool.</p>
-                <div class="stats-grid">
-                    <div class="stat">
-                        <div class="stat-value"><%- (tokens && tokens.tokens.length) || 0 %></div>
-                        <div class="stat-label">Tokens</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value"><%- (bumpConfig && bumpConfig.servers.length) || 0 %></div>
-                        <div class="stat-label">Serveurs bump</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value"><%- (senderConfig && senderConfig.messages.length) || 0 %></div>
-                        <div class="stat-label">Messages</div>
-                    </div>
-                    <div class="stat">
-                        <div class="stat-value"><%- isRunning ? 'ON' : 'OFF' %></div>
-                        <div class="stat-label">Statut global</div>
-                    </div>
-                </div>
-            </article>
+                <p>Les indicateurs essentiels sont regroupés ici pour comprendre rapidement la configuration actuelle.</p>
+            </div>
+        </section>
 
+        <section class="stats-grid">
+            <article class="stat">
+                <span class="stat-value"><%- (tokens && tokens.tokens.length) || 0 %></span>
+                <span class="stat-label">Tokens</span>
+            </article>
+            <article class="stat">
+                <span class="stat-value"><%- (bumpConfig && bumpConfig.servers.length) || 0 %></span>
+                <span class="stat-label">Serveurs bump</span>
+            </article>
+            <article class="stat">
+                <span class="stat-value"><%- (senderConfig && senderConfig.messages.length) || 0 %></span>
+                <span class="stat-label">Messages</span>
+            </article>
+            <article class="stat">
+                <span class="stat-value"><%- isRunning ? 'ON' : 'OFF' %></span>
+                <span class="stat-label">Statut global</span>
+            </article>
+        </section>
+
+        <section class="main-content">
             <article class="card feature-card">
+                <div class="card-topline">Bump automatique</div>
                 <h2>AutoBump</h2>
                 <p>Planifiez les bumps Disboard avec rotation de tokens, délais ajustés et logs centralisés.</p>
                 <ul class="feature-list">
@@ -49,29 +53,32 @@
             </article>
 
             <article class="card feature-card">
+                <div class="card-topline">Messages récurrents</div>
                 <h2>AutoSender</h2>
                 <p>Préparez des messages récurrents pour plusieurs salons avec variables et délais personnalisables.</p>
                 <ul class="feature-list">
                     <li>Messages récurrents</li>
                     <li>Groupes de salons</li>
                     <li>Groupes de tokens</li>
-                    <li>Gestion du rythme d’envoi</li>
+                    <li>Gestion du rythme d'envoi</li>
                 </ul>
                 <a class="button" href="/sender">Configurer</a>
             </article>
 
             <article class="card feature-card">
+                <div class="card-topline">Accès</div>
                 <h2>Tokens</h2>
-                <p>Centralisez vos tokens, nommez-les clairement et classez-les par groupes d’utilisation.</p>
+                <p>Centralisez vos tokens, nommez-les clairement et classez-les par groupes d'utilisation.</p>
                 <ul class="feature-list">
                     <li>Ajout rapide</li>
                     <li>Groupes personnalisables</li>
-                    <li>Tokens masqués dans l’interface</li>
+                    <li>Tokens masqués dans l'interface</li>
                 </ul>
                 <a class="button" href="/tokens">Gérer</a>
             </article>
 
             <article class="card feature-card">
+                <div class="card-topline">Notifications</div>
                 <h2>Webhooks</h2>
                 <p>Recevez les événements importants dans Discord pour suivre les succès et les erreurs.</p>
                 <ul class="feature-list">

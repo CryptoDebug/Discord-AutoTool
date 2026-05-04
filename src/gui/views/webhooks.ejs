@@ -11,11 +11,25 @@
     <%- include('nav') %>
 
     <main class="container">
-        <section class="main-content">
-            <article class="card" style="grid-column: 1 / -1;">
-                <h2>Configuration des webhooks Discord</h2>
+        <section class="page-head">
+            <div>
+                <div class="section-kicker">Webhooks</div>
+                <h2>Notifications Discord</h2>
+                <p>Configurez les événements qui seront envoyés dans votre salon de logs Discord.</p>
+            </div>
+            <span class="badge <%= webhooks.enabled ? 'success' : 'danger' %>"><%= webhooks.enabled ? 'Actifs' : 'Inactifs' %></span>
+        </section>
 
-                <div class="notice" style="margin-bottom: 18px;">
+        <section class="main-content">
+            <article class="card span-full">
+                <div class="card-header">
+                    <div>
+                        <div class="card-topline">Configuration</div>
+                        <h2>Webhook Discord</h2>
+                    </div>
+                </div>
+
+                <div class="notice">
                     <h3>Instructions</h3>
                     <ol>
                         <li>Ouvrez les paramètres du serveur Discord concerné.</li>
@@ -31,31 +45,36 @@
                         Webhooks activés
                     </label>
 
-                    <div class="form-group" style="grid-column: 1 / -1;">
+                    <div class="form-group span-full">
                         <label for="url">URL du webhook</label>
                         <input type="url" id="url" name="url" placeholder="https://discord.com/api/webhooks/..." value="<%= webhooks.url %>">
                     </div>
 
                     <label class="form-group check-row">
                         <input type="checkbox" id="logErrors" name="logErrors" <%= webhooks.logErrors ? 'checked' : '' %>>
-                        Logger les erreurs
+                        Journaliser les erreurs
                     </label>
 
                     <label class="form-group check-row">
                         <input type="checkbox" id="logSuccess" name="logSuccess" <%= webhooks.logSuccess ? 'checked' : '' %>>
-                        Logger les succès
+                        Journaliser les succès
                     </label>
 
                     <button type="submit">Enregistrer</button>
                 </form>
             </article>
 
-            <article class="card" style="grid-column: 1 / -1;">
-                <h2>Événements loggés</h2>
+            <article class="card span-full">
+                <div class="card-header">
+                    <div>
+                        <div class="card-topline">Référence</div>
+                        <h2>Événements loggés</h2>
+                    </div>
+                </div>
                 <div class="event-grid">
                     <div class="event-card">
                         <span class="badge success">Succès</span>
-                        <ul style="margin-top: 12px;">
+                        <ul>
                             <li>Bump effectué</li>
                             <li>Message envoyé</li>
                             <li>Client connecté</li>
@@ -64,7 +83,7 @@
 
                     <div class="event-card">
                         <span class="badge danger">Erreurs</span>
-                        <ul style="margin-top: 12px;">
+                        <ul>
                             <li>Compte désactivé</li>
                             <li>Permissions insuffisantes</li>
                             <li>Salon supprimé</li>
@@ -74,7 +93,7 @@
 
                     <div class="event-card">
                         <span class="badge accent">Avertissements</span>
-                        <ul style="margin-top: 12px;">
+                        <ul>
                             <li>Slowmode détecté</li>
                             <li>Compte mute</li>
                             <li>Salon non textuel</li>
