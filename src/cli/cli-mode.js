@@ -1,9 +1,91 @@
-﻿import chalk from 'chalk';
+import chalk from 'chalk';
 import inquirer from 'inquirer';
 import { ConfigManager } from '../config/manager.js';
 import { AutoBumper } from '../features/autobump/bumper.js';
 import { AutoSender } from '../features/autosender/sender.js';
 import { Logger } from '../features/logging.js';
+
+const UI_WIDTH = 64;
+
+const icons = {
+    app: '>',
+    info: 'i',
+    ok: 'OK',
+    stop: 'STOP',
+    warning: '!',
+    error: 'X'
+};
+
+function line(char = '-') {
+    return chalk.gray(char.repeat(UI_WIDTH));
+}
+
+function title(text, subtitle) {
+    console.log('');
+    console.log(line('='));
+    console.log(chalk.bold.cyan(` ${icons.app} ${text}`));
+    if (subtitle) {
+        console.log(chalk.gray(`   ${subtitle}`));
+    }
+    console.log(line('='));
+}
+
+function section(text, subtitle) {
+    console.log('');
+    console.log(chalk.bold.cyan(text));
+    if (subtitle) {
+        console.log(chalk.gray(subtitle));
+    }
+    console.log(line());
+}
+
+function emptyState(text, hint) {
+    console.log('');
+    console.log(chalk.yellow(`[${icons.warning}] ${text}`));
+    if (hint) {
+        console.log(chalk.gray(`    ${hint}`));
+    }
+    console.log('');
+}
+
+function success(text) {
+    console.log(chalk.green(`\n[${icons.ok}] ${text}\n`));
+}
+
+function danger(text) {
+    console.log(chalk.red(`\n[${icons.error}] ${text}\n`));
+}
+
+function stopped(text) {
+    console.log(chalk.red(`\n[${icons.stop}] ${text}\n`));
+}
+
+function statusLabel(enabled) {
+    return enabled ? chalk.green('actif') : chalk.gray('inactif');
+}
+
+function safeText(value, fallback = 'Sans nom') {
+    if (typeof value !== 'string') {
+        return value || fallback;
+    }
+
+    return value.trim() || fallback;
+}
+
+function maskedToken(token) {
+    if (!token) {
+        return chalk.gray('token indisponible');
+    }
+
+    return `${token.substring(0, 15)}${chalk.gray('...')}`;
+}
+
+function menuChoice(label, hint, value) {
+    return {
+        name: hint ? `${label} ${chalk.gray(`- ${hint}`)}` : label,
+        value
+    };
+}
 
 export async function startCLI() {
     const configManager = new ConfigManager();
@@ -19,18 +101,19 @@ export async function startCLI() {
     let running = true;
 
     while (running) {
-        console.log('');
+        title('Discord AutoTool', 'Choisissez un espace de configuration ou lancez un module.');
         const answers = await inquirer.prompt([
             {
                 type: 'list',
                 name: 'mode',
-                message: 'Choisir le mode:',
+                message: 'Menu principal',
                 choices: [
-                    { name: 'AutoBump', value: 'bump' },
-                    { name: 'AutoSender', value: 'sender' },
-                    { name: 'Gestion Tokens', value: 'tokens' },
-                    { name: 'Configuration Webhooks', value: 'webhooks' },
-                    { name: 'Quitter', value: 'quit' }
+                    menuChoice('AutoBump', 'serveurs et bump automatique', 'bump'),
+                    menuChoice('AutoSender', 'envoi automatique de messages', 'sender'),
+                    menuChoice('Tokens', 'ajouter, supprimer et grouper', 'tokens'),
+                    menuChoice('Webhooks', 'journalisation Discord', 'webhooks'),
+                    new inquirer.Separator(line()),
+                    menuChoice('Quitter', 'fermer la CLI', 'quit')
                 ]
             }
         ]);
@@ -63,19 +146,24 @@ async function handleBumpCLI(configManager, autoBumper, logger) {
 
     while (inBumpMenu) {
         const config = await configManager.read('bump');
+        const serverCount = config.servers?.length || 0;
+
+        section('AutoBump', `${serverCount} serveur(s) configuré(s). Statut: ${config.enabled ? 'actif' : 'inactif'}.`);
         const answers = await inquirer.prompt([
             {
                 type: 'list',
                 name: 'action',
-                message: 'AutoBump - Actions:',
+                message: 'Que voulez-vous faire ?',
                 choices: [
-                    { name: `Voir les serveurs (${config.servers?.length || 0})`, value: 'list' },
-                    { name: 'Ajouter un serveur', value: 'add' },
-                    { name: 'Supprimer un serveur', value: 'remove' },
-                    { name: 'Paramètres', value: 'settings' },
-                    { name: 'Démarrer', value: 'start' },
-                    { name: 'Arrêter', value: 'stop' },
-                    { name: 'Retour', value: 'back' }
+                    menuChoice(`Voir les serveurs (${serverCount})`, 'consulter la liste actuelle', 'list'),
+                    menuChoice('Ajouter un serveur', 'ID serveur, salon bump et token', 'add'),
+                    menuChoice('Supprimer un serveur', 'retirer une entrée existante', 'remove'),
+                    menuChoice('Paramètres', 'humanisation et limite par token', 'settings'),
+                    new inquirer.Separator(line()),
+                    menuChoice('Démarrer', 'activer AutoBump', 'start'),
+                    menuChoice('Arrêter', 'désactiver AutoBump', 'stop'),
+                    new inquirer.Separator(line()),
+                    menuChoice('Retour', 'menu principal', 'back')
                 ]
             }
         ]);
@@ -83,13 +171,15 @@ async function handleBumpCLI(configManager, autoBumper, logger) {
         switch (answers.action) {
             case 'list':
                 if (config.servers && config.servers.length > 0) {
-                    console.log(chalk.cyan('\nServeurs configurés:'));
+                    section('Serveurs configurés');
                     config.servers.forEach((s, i) => {
-                        console.log(`  ${i + 1}. ${s.name} (${s.serverId}) - ${s.enabled ? '[ON]' : '[OFF]'}`);
+                        console.log(` ${chalk.gray(String(i + 1).padStart(2, '0'))}. ${chalk.bold(safeText(s.name))}`);
+                        console.log(`     ID serveur : ${chalk.white(s.serverId)}`);
+                        console.log(`     Statut     : ${statusLabel(s.enabled)}`);
                     });
                     console.log('');
                 } else {
-                    console.log(chalk.yellow('\n[!] Aucun serveur configuré\n'));
+                    emptyState('Aucun serveur configuré.', 'Ajoutez un serveur pour utiliser AutoBump.');
                 }
                 break;
 
@@ -109,14 +199,14 @@ async function handleBumpCLI(configManager, autoBumper, logger) {
                 config.enabled = true;
                 await configManager.write('bump', config);
                 await autoBumper.startBumping();
-                console.log(chalk.green('\n[OK] AutoBump démarré!\n'));
+                success('AutoBump démarré.');
                 break;
 
             case 'stop':
                 config.enabled = false;
                 await configManager.write('bump', config);
                 await autoBumper.stopAll();
-                console.log(chalk.red('\n[STOP] AutoBump arrêté!\n'));
+                stopped('AutoBump arrêté.');
                 break;
 
             case 'back':
@@ -130,36 +220,37 @@ async function addBumpServer(configManager) {
     const tokensConfig = await configManager.read('tokens');
 
     if (!tokensConfig.tokens || tokensConfig.tokens.length === 0) {
-        console.log(chalk.red('\n[X] Aucun token configuré!\n'));
+        danger('Aucun token configuré. Ajoutez un token avant de créer un serveur AutoBump.');
         return;
     }
 
+    section('Nouveau serveur AutoBump', 'Renseignez les identifiants Discord nécessaires.');
     const answers = await inquirer.prompt([
         {
             type: 'input',
             name: 'serverId',
-            message: 'ID du serveur:',
+            message: 'ID du serveur',
             validate: (val) => val.length > 0 ? true : 'Entrez un ID'
         },
         {
             type: 'input',
             name: 'bumpChannelId',
-            message: 'ID du salon bump:',
+            message: 'ID du salon bump',
             validate: (val) => val.length > 0 ? true : 'Entrez un ID'
         },
         {
             type: 'list',
             name: 'tokenId',
-            message: 'Token à utiliser:',
+            message: 'Token à utiliser',
             choices: tokensConfig.tokens.map(t => ({
-                name: `${t.name} (${t.group})`,
+                name: `${safeText(t.name, 'Token sans nom')} ${chalk.gray(`[${t.group}]`)}`,
                 value: t.id
             }))
         },
         {
             type: 'input',
             name: 'name',
-            message: 'Nom du serveur (optionnel):'
+            message: 'Nom du serveur (optionnel)'
         }
     ]);
 
@@ -172,24 +263,25 @@ async function addBumpServer(configManager) {
     });
 
     await configManager.write('bump', config);
-    console.log(chalk.green('\n[OK] Serveur ajouté!\n'));
+    success('Serveur ajouté.');
 }
 
 async function removeBumpServer(configManager) {
     const config = await configManager.read('bump');
 
     if (!config.servers || config.servers.length === 0) {
-        console.log(chalk.yellow('\n[!] Aucun serveur à supprimer\n'));
+        emptyState('Aucun serveur à supprimer.');
         return;
     }
 
+    section('Supprimer un serveur AutoBump');
     const answers = await inquirer.prompt([
         {
             type: 'list',
             name: 'serverId',
-            message: 'Serveur à supprimer:',
-            choices: config.servers.map((s, i) => ({
-                name: `${s.name} (${s.serverId})`,
+            message: 'Serveur à supprimer',
+            choices: config.servers.map(s => ({
+                name: `${safeText(s.name)} ${chalk.gray(`(${s.serverId})`)}`,
                 value: s.id
             }))
         }
@@ -197,37 +289,38 @@ async function removeBumpServer(configManager) {
 
     config.servers = config.servers.filter(s => s.id !== answers.serverId);
     await configManager.write('bump', config);
-    console.log(chalk.green('\n[OK] Serveur supprimé!\n'));
+    success('Serveur supprimé.');
 }
 
 async function configureBumpSettings(configManager) {
     const config = await configManager.read('bump');
 
+    section('Paramètres AutoBump', 'Ajustez uniquement le comportement déjà existant.');
     const answers = await inquirer.prompt([
         {
             type: 'confirm',
             name: 'humanize',
-            message: 'Activer l’humanisation (1-15 min aléatoires)?',
+            message: 'Activer l\'humanisation (délai aléatoire)',
             default: config.settings.humanize
         },
         {
             type: 'number',
             name: 'humanizeMin',
-            message: 'Min humanization (minutes):',
+            message: 'Délai minimum (minutes)',
             default: config.settings.humanizeMin,
             when: (ans) => ans.humanize
         },
         {
             type: 'number',
             name: 'humanizeMax',
-            message: 'Max humanization (minutes):',
+            message: 'Délai maximum (minutes)',
             default: config.settings.humanizeMax,
             when: (ans) => ans.humanize
         },
         {
             type: 'number',
             name: 'maxServersPerToken',
-            message: 'Max serveurs par token:',
+            message: 'Nombre maximum de serveurs par token',
             default: config.settings.maxServersPerToken
         }
     ]);
@@ -240,11 +333,13 @@ async function configureBumpSettings(configManager) {
     };
 
     await configManager.write('bump', config);
-    console.log(chalk.green('\n[OK] Paramètres enregistrés!\n'));
+    success('Paramètres enregistrés.');
 }
 
 async function handleSenderCLI(configManager, autoSender, logger) {
-    console.log(chalk.cyan('\nAutoSender - Mode CLI en développement...\n'));
+    section('AutoSender');
+    console.log(chalk.gray(`[${icons.info}] Mode CLI en développement...`));
+    console.log('');
 }
 
 async function handleTokensCLI(configManager) {
@@ -253,18 +348,22 @@ async function handleTokensCLI(configManager) {
     while (inTokenMenu) {
         const config = await configManager.read('tokens');
         const groupsConfig = await configManager.read('groups');
+        const tokenCount = config.tokens?.length || 0;
+        const groupCount = groupsConfig.tokenGroups?.length || 0;
 
+        section('Tokens', `${tokenCount} token(s), ${groupCount} groupe(s).`);
         const answers = await inquirer.prompt([
             {
                 type: 'list',
                 name: 'action',
-                message: 'Gestion Tokens:',
+                message: 'Que voulez-vous faire ?',
                 choices: [
-                    { name: `Voir les tokens (${config.tokens?.length || 0})`, value: 'list' },
-                    { name: 'Ajouter un token', value: 'add' },
-                    { name: 'Supprimer un token', value: 'remove' },
-                    { name: 'Gérer les groupes', value: 'groups' },
-                    { name: 'Retour', value: 'back' }
+                    menuChoice(`Voir les tokens (${tokenCount})`, 'liste masquée pour rester lisible', 'list'),
+                    menuChoice('Ajouter un token', 'nom, valeur et groupe', 'add'),
+                    menuChoice('Supprimer un token', 'retirer une entrée', 'remove'),
+                    menuChoice('Gérer les groupes', 'créer ou supprimer un groupe', 'groups'),
+                    new inquirer.Separator(line()),
+                    menuChoice('Retour', 'menu principal', 'back')
                 ]
             }
         ]);
@@ -272,59 +371,63 @@ async function handleTokensCLI(configManager) {
         switch (answers.action) {
             case 'list':
                 if (config.tokens && config.tokens.length > 0) {
-                    console.log(chalk.cyan('\nTokens:'));
+                    section('Tokens enregistrés');
                     config.tokens.forEach((t, i) => {
-                        console.log(`  ${i + 1}. ${t.name} [${t.group}] - ${t.token.substring(0, 15)}...`);
+                        console.log(` ${chalk.gray(String(i + 1).padStart(2, '0'))}. ${chalk.bold(safeText(t.name, 'Token sans nom'))}`);
+                        console.log(`     Groupe : ${chalk.white(t.group)}`);
+                        console.log(`     Token  : ${maskedToken(t.token)}`);
                     });
                     console.log('');
                 } else {
-                    console.log(chalk.yellow('\n[!] Aucun token\n'));
+                    emptyState('Aucun token enregistré.', 'Ajoutez un token pour configurer AutoBump ou AutoSender.');
                 }
                 break;
 
             case 'add':
+                section('Ajouter un token');
                 const tokenAnswers = await inquirer.prompt([
                     {
                         type: 'password',
                         name: 'token',
-                        message: 'Token Discord:',
+                        message: 'Token Discord',
                         validate: (val) => val.length > 20 ? true : 'Token invalide'
                     },
                     {
                         type: 'input',
                         name: 'name',
-                        message: 'Nom (optionnel):'
+                        message: 'Nom (optionnel)'
                     },
                     {
                         type: 'list',
                         name: 'group',
-                        message: 'Groupe:',
+                        message: 'Groupe',
                         choices: [...(groupsConfig.tokenGroups || []), 'default']
                     }
                 ]);
 
                 await configManager.addToken(tokenAnswers.token, tokenAnswers.name, tokenAnswers.group);
-                console.log(chalk.green('\n[OK] Token ajouté!\n'));
+                success('Token ajouté.');
                 break;
 
             case 'remove':
                 if (config.tokens && config.tokens.length > 0) {
+                    section('Supprimer un token');
                     const removeAnswers = await inquirer.prompt([
                         {
                             type: 'list',
                             name: 'tokenId',
-                            message: 'Token à supprimer:',
+                            message: 'Token à supprimer',
                             choices: config.tokens.map(t => ({
-                                name: `${t.name} [${t.group}]`,
+                                name: `${safeText(t.name, 'Token sans nom')} ${chalk.gray(`[${t.group}]`)}`,
                                 value: t.id
                             }))
                         }
                     ]);
 
                     await configManager.removeToken(removeAnswers.tokenId);
-                    console.log(chalk.green('\n[OK] Token supprimé!\n'));
+                    success('Token supprimé.');
                 } else {
-                    console.log(chalk.yellow('\n[!] Aucun token\n'));
+                    emptyState('Aucun token à supprimer.');
                 }
                 break;
 
@@ -340,74 +443,81 @@ async function handleTokensCLI(configManager) {
 }
 
 async function manageTokenGroups(configManager, groupsConfig) {
+    section('Groupes de tokens', `${groupsConfig.tokenGroups?.length || 0} groupe(s) personnalisé(s).`);
     const groupAnswers = await inquirer.prompt([
         {
             type: 'list',
             name: 'action',
-            message: 'Groupes:',
+            message: 'Que voulez-vous faire ?',
             choices: [
-                { name: 'Créer un groupe', value: 'create' },
-                { name: 'Supprimer un groupe', value: 'delete' },
-                { name: 'Retour', value: 'back' }
+                menuChoice('Créer un groupe', 'organiser les tokens', 'create'),
+                menuChoice('Supprimer un groupe', 'retirer un groupe existant', 'delete'),
+                new inquirer.Separator(line()),
+                menuChoice('Retour', 'menu tokens', 'back')
             ]
         }
     ]);
 
     if (groupAnswers.action === 'create') {
+        section('Créer un groupe');
         const nameAnswers = await inquirer.prompt([
             {
                 type: 'input',
                 name: 'groupName',
-                message: 'Nom du groupe:',
+                message: 'Nom du groupe',
                 validate: (val) => val.length > 0 ? true : 'Entrez un nom'
             }
         ]);
 
         await configManager.addTokenGroup(nameAnswers.groupName);
-        console.log(chalk.green('\n[OK] Groupe créé!\n'));
+        success('Groupe créé.');
     } else if (groupAnswers.action === 'delete' && groupsConfig.tokenGroups.length > 0) {
+        section('Supprimer un groupe');
         const deleteAnswers = await inquirer.prompt([
             {
                 type: 'list',
                 name: 'groupName',
-                message: 'Groupe à supprimer:',
+                message: 'Groupe à supprimer',
                 choices: groupsConfig.tokenGroups
             }
         ]);
 
         await configManager.removeTokenGroup(deleteAnswers.groupName);
-        console.log(chalk.green('\n[OK] Groupe supprimé!\n'));
+        success('Groupe supprimé.');
+    } else if (groupAnswers.action === 'delete') {
+        emptyState('Aucun groupe personnalisé à supprimer.');
     }
 }
 
 async function handleWebhooksCLI(configManager) {
     const webhookConfig = await configManager.read('webhook');
 
+    section('Webhooks', `Statut actuel: ${webhookConfig.enabled ? 'actif' : 'inactif'}.`);
     const answers = await inquirer.prompt([
         {
             type: 'confirm',
             name: 'enabled',
-            message: 'Activer les webhooks?',
+            message: 'Activer les webhooks',
             default: webhookConfig.enabled
         },
         {
             type: 'input',
             name: 'url',
-            message: 'URL du webhook Discord:',
+            message: 'URL du webhook Discord',
             default: webhookConfig.url,
             when: (ans) => ans.enabled
         },
         {
             type: 'confirm',
             name: 'logErrors',
-            message: 'Logger les erreurs?',
+            message: 'Journaliser les erreurs',
             default: webhookConfig.logErrors,
             when: (ans) => ans.enabled
         },
         {
             type: 'confirm',
             name: 'logSuccess',
-            message: 'Logger les succès?',
+            message: 'Journaliser les succès',
             default: webhookConfig.logSuccess,
             when: (ans) => ans.enabled
         }
@@ -421,5 +531,5 @@ async function handleWebhooksCLI(configManager) {
     };
 
     await configManager.write('webhook', config);
-    console.log(chalk.green('\n[OK] Webhooks configurés!\n'));
+    success('Webhooks configurés.');
 }
