@@ -360,6 +360,7 @@ async function handleTokensCLI(configManager) {
                 choices: [
                     menuChoice(`Voir les tokens (${tokenCount})`, 'liste masquée pour rester lisible', 'list'),
                     menuChoice('Ajouter un token', 'nom, valeur et groupe', 'add'),
+                    menuChoice('Modifier un token', 'changer nom, valeur ou groupe', 'edit'),
                     menuChoice('Supprimer un token', 'retirer une entrée', 'remove'),
                     menuChoice('Gérer les groupes', 'créer ou supprimer un groupe', 'groups'),
                     new inquirer.Separator(line()),
@@ -409,6 +410,10 @@ async function handleTokensCLI(configManager) {
                 success('Token ajouté.');
                 break;
 
+            case 'edit':
+                await editTokenCLI(configManager, config, groupsConfig);
+                break;
+
             case 'remove':
                 if (config.tokens && config.tokens.length > 0) {
                     section('Supprimer un token');
@@ -439,6 +444,59 @@ async function handleTokensCLI(configManager) {
                 inTokenMenu = false;
                 break;
         }
+    }
+}
+
+async function editTokenCLI(configManager, config, groupsConfig) {
+    if (!config.tokens || config.tokens.length === 0) {
+        emptyState('Aucun token a modifier.');
+        return;
+    }
+
+    section('Modifier un token');
+    const selectAnswers = await inquirer.prompt([
+        {
+            type: 'list',
+            name: 'tokenId',
+            message: 'Token a modifier',
+            choices: config.tokens.map(t => ({
+                name: `${safeText(t.name, 'Token sans nom')} ${chalk.gray(`[${t.group}]`)} ${chalk.gray(maskedToken(t.token))}`,
+                value: t.id
+            }))
+        }
+    ]);
+
+    const selectedToken = config.tokens.find(t => t.id === selectAnswers.tokenId);
+    const groupChoices = [...new Set(['default', ...(groupsConfig.tokenGroups || []), selectedToken.group].filter(Boolean))];
+
+    const tokenAnswers = await inquirer.prompt([
+        {
+            type: 'password',
+            name: 'token',
+            message: 'Token Discord',
+            default: selectedToken.token,
+            validate: (val) => val.length > 20 ? true : 'Token invalide'
+        },
+        {
+            type: 'input',
+            name: 'name',
+            message: 'Nom',
+            default: selectedToken.name
+        },
+        {
+            type: 'list',
+            name: 'group',
+            message: 'Groupe',
+            choices: groupChoices,
+            default: selectedToken.group || 'default'
+        }
+    ]);
+
+    const updated = await configManager.updateToken(selectAnswers.tokenId, tokenAnswers);
+    if (updated) {
+        success('Token modifie.');
+    } else {
+        danger('Token introuvable.');
     }
 }
 

@@ -246,10 +246,42 @@ app.post('/api/tokens/add', async (req, res) => {
     }
 });
 
+app.post('/api/tokens/update', async (req, res) => {
+    try {
+        const { tokenId, token, name, group } = req.body;
+
+        if (!token || !token.trim()) {
+            res.json({ success: false, error: 'Token vide' });
+            return;
+        }
+
+        const updated = await configManager.updateToken(tokenId, {
+            token: token.trim(),
+            name: name?.trim(),
+            group: group?.trim() || 'default'
+        });
+
+        if (!updated) {
+            res.json({ success: false, error: 'Token introuvable' });
+            return;
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
 app.post('/api/tokens/remove', async (req, res) => {
     try {
         const { tokenId } = req.body;
-        await configManager.removeToken(tokenId);
+        const removed = await configManager.removeToken(tokenId);
+
+        if (!removed) {
+            res.json({ success: false, error: 'Token introuvable' });
+            return;
+        }
+
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, error: err.message });

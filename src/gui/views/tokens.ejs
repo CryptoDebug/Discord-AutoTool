@@ -117,7 +117,14 @@
                                         <td><%= new Date(token.createdAt).toLocaleDateString('fr-FR') %></td>
                                         <td>
                                             <div class="actions">
-                                                <button type="button" onclick="editToken('<%= token.id %>')">Modifier</button>
+                                                <button
+                                                    type="button"
+                                                    data-token-id="<%= token.id %>"
+                                                    data-token-name="<%= token.name %>"
+                                                    data-token-group="<%= token.group %>"
+                                                    data-token-value="<%= token.token %>"
+                                                    onclick="editToken(this)"
+                                                >Modifier</button>
                                                 <button type="button" class="danger" onclick="removeToken('<%= token.id %>')">Supprimer</button>
                                             </div>
                                         </td>
@@ -164,12 +171,62 @@
             }
         }
 
-        function editToken(tokenId) {
-            alert('La modification des tokens n'est pas encore disponible.');
+        async function editToken(button) {
+            const tokenId = button.dataset.tokenId;
+            const currentName = button.dataset.tokenName || '';
+            const currentGroup = button.dataset.tokenGroup || 'default';
+            const currentToken = button.dataset.tokenValue || '';
+
+            const name = prompt('Nom du token', currentName);
+            if (name === null) return;
+
+            const group = prompt('Groupe du token', currentGroup);
+            if (group === null) return;
+
+            const token = prompt('Token Discord', currentToken);
+            if (token === null) return;
+
+            if (!token.trim()) {
+                alert('Le token ne peut pas etre vide.');
+                return;
+            }
+
+            const res = await fetch('/api/tokens/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tokenId,
+                    name: name.trim(),
+                    group: group.trim() || 'default',
+                    token: token.trim()
+                })
+            });
+            const result = await res.json();
+            if (result.success) {
+                alert('Token modifie !');
+                location.reload();
+            } else {
+                alert('Erreur: ' + result.error);
+            }
         }
 
-        function removeToken(tokenId) {
-            alert('La suppression des tokens n'est pas encore disponible.');
+        async function removeToken(tokenId) {
+            if (!confirm('Supprimer ce token ?')) {
+                return;
+            }
+
+            const res = await fetch('/api/tokens/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tokenId })
+            });
+            const result = await res.json();
+            if (result.success) {
+                alert('Token supprime !');
+                location.reload();
+            } else {
+                alert('Erreur: ' + result.error);
+            }
         }
 
         async function createTokenGroup() {

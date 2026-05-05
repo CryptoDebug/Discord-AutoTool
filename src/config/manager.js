@@ -102,9 +102,35 @@ export class ConfigManager {
         return await this.write('tokens', config);
     }
 
+    async updateToken(tokenId, updates = {}) {
+        const config = await this.read('tokens');
+        const tokenIndex = config.tokens.findIndex(t => t.id === tokenId);
+
+        if (tokenIndex === -1) {
+            return false;
+        }
+
+        const currentToken = config.tokens[tokenIndex];
+        config.tokens[tokenIndex] = {
+            ...currentToken,
+            token: updates.token !== undefined ? updates.token : currentToken.token,
+            name: updates.name !== undefined ? (updates.name || currentToken.name) : currentToken.name,
+            group: updates.group !== undefined ? (updates.group || 'default') : currentToken.group,
+            updatedAt: new Date().toISOString()
+        };
+
+        return await this.write('tokens', config);
+    }
+
     async removeToken(tokenId) {
         const config = await this.read('tokens');
+        const initialLength = config.tokens.length;
         config.tokens = config.tokens.filter(t => t.id !== tokenId);
+
+        if (config.tokens.length === initialLength) {
+            return false;
+        }
+
         return await this.write('tokens', config);
     }
 
