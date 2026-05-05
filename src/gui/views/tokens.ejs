@@ -125,7 +125,13 @@
                                                     data-token-value="<%= token.token %>"
                                                     onclick="editToken(this)"
                                                 >Modifier</button>
-                                                <button type="button" class="danger" onclick="removeToken('<%= token.id %>')">Supprimer</button>
+                                                <button
+                                                    type="button"
+                                                    class="danger"
+                                                    data-token-id="<%= token.id %>"
+                                                    data-token-name="<%= token.name %>"
+                                                    onclick="openDeleteTokenModal(this)"
+                                                >Supprimer</button>
                                             </div>
                                         </td>
                                     </tr>
@@ -177,12 +183,35 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="deleteTokenModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="deleteTokenTitle">
+            <div class="modal-header">
+                <div>
+                    <div class="card-topline">Suppression</div>
+                    <h2 id="deleteTokenTitle">Supprimer le token</h2>
+                </div>
+                <button type="button" class="ghost-button" onclick="closeDeleteTokenModal()" aria-label="Fermer">&times;</button>
+            </div>
+            <p class="modal-copy">
+                Vous allez supprimer <strong id="deleteTokenName">ce token</strong>. Cette action est definitive.
+            </p>
+            <input type="hidden" id="deleteTokenId">
+            <div class="modal-error" id="deleteTokenError" hidden></div>
+            <div class="modal-actions">
+                <button type="button" class="secondary-button" onclick="closeDeleteTokenModal()">Annuler</button>
+                <button type="button" class="danger" onclick="confirmDeleteToken()">Supprimer</button>
+            </div>
+        </div>
+    </div>
+
     <%- include('footer') %>
 
     <script>
         const editTokenModal = document.getElementById('editTokenModal');
         const editTokenForm = document.getElementById('editTokenForm');
         const editTokenError = document.getElementById('editTokenError');
+        const deleteTokenModal = document.getElementById('deleteTokenModal');
+        const deleteTokenError = document.getElementById('deleteTokenError');
 
         document.getElementById('addTokenForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -265,16 +294,43 @@
             }
         });
 
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !editTokenModal.hidden) {
-                closeEditTokenModal();
+        deleteTokenModal.addEventListener('click', (e) => {
+            if (e.target === deleteTokenModal) {
+                closeDeleteTokenModal();
             }
         });
 
-        async function removeToken(tokenId) {
-            if (!confirm('Supprimer ce token ?')) {
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') {
                 return;
             }
+
+            if (!editTokenModal.hidden) {
+                closeEditTokenModal();
+            }
+
+            if (!deleteTokenModal.hidden) {
+                closeDeleteTokenModal();
+            }
+        });
+
+        function openDeleteTokenModal(button) {
+            document.getElementById('deleteTokenId').value = button.dataset.tokenId;
+            document.getElementById('deleteTokenName').textContent = button.dataset.tokenName || 'ce token';
+            deleteTokenError.hidden = true;
+            deleteTokenError.textContent = '';
+            deleteTokenModal.hidden = false;
+        }
+
+        function closeDeleteTokenModal() {
+            deleteTokenModal.hidden = true;
+            document.getElementById('deleteTokenId').value = '';
+            deleteTokenError.hidden = true;
+            deleteTokenError.textContent = '';
+        }
+
+        async function confirmDeleteToken() {
+            const tokenId = document.getElementById('deleteTokenId').value;
 
             const res = await fetch('/api/tokens/remove', {
                 method: 'POST',
@@ -283,10 +339,10 @@
             });
             const result = await res.json();
             if (result.success) {
-                alert('Token supprime !');
                 location.reload();
             } else {
-                alert('Erreur: ' + result.error);
+                deleteTokenError.textContent = 'Erreur: ' + result.error;
+                deleteTokenError.hidden = false;
             }
         }
 

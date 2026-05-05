@@ -719,6 +719,11 @@ code {
     font-size: 1.18rem;
 }
 
+.modal-copy {
+    margin-bottom: 18px;
+    color: var(--muted);
+}
+
 .modal-actions {
     display: flex;
     justify-content: flex-end;
