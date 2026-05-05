@@ -488,6 +488,23 @@ button.success,
     background: linear-gradient(180deg, #9bf0a8, #62d977);
 }
 
+.secondary-button,
+.ghost-button {
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.ghost-button {
+    width: 40px;
+    min-height: 40px;
+    padding: 0;
+    border-color: var(--line);
+    color: var(--muted);
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
 .actions {
     display: flex;
     flex-wrap: wrap;
@@ -664,6 +681,58 @@ code {
     border-color: rgba(255, 117, 111, 0.38);
 }
 
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.58);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.modal-overlay[hidden] {
+    display: none;
+}
+
+.modal {
+    width: min(560px, 100%);
+    padding: 22px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    background: rgba(24, 27, 30, 0.96);
+    box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.modal-header {
+    margin-bottom: 18px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.modal-header h2 {
+    margin-top: 3px;
+    font-size: 1.18rem;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modal-error {
+    padding: 12px 14px;
+    border: 1px solid rgba(255, 117, 111, 0.38);
+    border-radius: var(--radius);
+    color: #fff2f1;
+    background: rgba(255, 117, 111, 0.12);
+}
+
 @media (max-width: 980px) {
     .stats-grid,
     .event-grid {
@@ -717,7 +786,9 @@ code {
 
     .control-actions,
     .control-actions button,
-    .inline-control button {
+    .inline-control button,
+    .modal-actions,
+    .modal-actions button {
         width: 100%;
     }
 

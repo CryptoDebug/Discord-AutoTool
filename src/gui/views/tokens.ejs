@@ -140,9 +140,50 @@
         </section>
     </main>
 
+    <div class="modal-overlay" id="editTokenModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editTokenTitle">
+            <div class="modal-header">
+                <div>
+                    <div class="card-topline">Modification</div>
+                    <h2 id="editTokenTitle">Modifier le token</h2>
+                </div>
+                <button type="button" class="ghost-button" onclick="closeEditTokenModal()" aria-label="Fermer">&times;</button>
+            </div>
+            <form id="editTokenForm" class="form-grid">
+                <input type="hidden" id="editTokenId" name="tokenId">
+                <div class="form-group">
+                    <label for="editTokenName">Nom</label>
+                    <input type="text" id="editTokenName" name="name" placeholder="Compte principal">
+                </div>
+                <div class="form-group">
+                    <label for="editTokenGroup">Groupe</label>
+                    <select id="editTokenGroup" name="group">
+                        <option value="default">Aucun groupe</option>
+                        <% if (groups.tokenGroups) { groups.tokenGroups.forEach(group => { %>
+                            <option value="<%= group %>"><%= group %></option>
+                        <% }); } %>
+                    </select>
+                </div>
+                <div class="form-group span-full">
+                    <label for="editTokenValue">Token Discord</label>
+                    <input type="password" id="editTokenValue" name="token" required>
+                </div>
+                <div class="modal-error span-full" id="editTokenError" hidden></div>
+                <div class="modal-actions span-full">
+                    <button type="button" class="secondary-button" onclick="closeEditTokenModal()">Annuler</button>
+                    <button type="submit">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <%- include('footer') %>
 
     <script>
+        const editTokenModal = document.getElementById('editTokenModal');
+        const editTokenForm = document.getElementById('editTokenForm');
+        const editTokenError = document.getElementById('editTokenError');
+
         document.getElementById('addTokenForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const data = new FormData(e.target);
@@ -171,23 +212,31 @@
             }
         }
 
-        async function editToken(button) {
-            const tokenId = button.dataset.tokenId;
-            const currentName = button.dataset.tokenName || '';
-            const currentGroup = button.dataset.tokenGroup || 'default';
-            const currentToken = button.dataset.tokenValue || '';
+        function editToken(button) {
+            document.getElementById('editTokenId').value = button.dataset.tokenId;
+            document.getElementById('editTokenName').value = button.dataset.tokenName || '';
+            document.getElementById('editTokenGroup').value = button.dataset.tokenGroup || 'default';
+            document.getElementById('editTokenValue').value = button.dataset.tokenValue || '';
+            editTokenError.hidden = true;
+            editTokenError.textContent = '';
+            editTokenModal.hidden = false;
+            document.getElementById('editTokenName').focus();
+        }
 
-            const name = prompt('Nom du token', currentName);
-            if (name === null) return;
+        function closeEditTokenModal() {
+            editTokenModal.hidden = true;
+            editTokenForm.reset();
+            editTokenError.hidden = true;
+            editTokenError.textContent = '';
+        }
 
-            const group = prompt('Groupe du token', currentGroup);
-            if (group === null) return;
+        editTokenForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(editTokenForm));
 
-            const token = prompt('Token Discord', currentToken);
-            if (token === null) return;
-
-            if (!token.trim()) {
-                alert('Le token ne peut pas etre vide.');
+            if (!data.token.trim()) {
+                editTokenError.textContent = 'Le token ne peut pas etre vide.';
+                editTokenError.hidden = false;
                 return;
             }
 
@@ -195,20 +244,32 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    tokenId,
-                    name: name.trim(),
-                    group: group.trim() || 'default',
-                    token: token.trim()
+                    tokenId: data.tokenId,
+                    name: data.name.trim(),
+                    group: data.group,
+                    token: data.token.trim()
                 })
             });
             const result = await res.json();
             if (result.success) {
-                alert('Token modifie !');
                 location.reload();
             } else {
-                alert('Erreur: ' + result.error);
+                editTokenError.textContent = 'Erreur: ' + result.error;
+                editTokenError.hidden = false;
             }
-        }
+        });
+
+        editTokenModal.addEventListener('click', (e) => {
+            if (e.target === editTokenModal) {
+                closeEditTokenModal();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !editTokenModal.hidden) {
+                closeEditTokenModal();
+            }
+        });
 
         async function removeToken(tokenId) {
             if (!confirm('Supprimer ce token ?')) {

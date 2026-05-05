@@ -467,7 +467,11 @@ async function editTokenCLI(configManager, config, groupsConfig) {
     ]);
 
     const selectedToken = config.tokens.find(t => t.id === selectAnswers.tokenId);
-    const groupChoices = [...new Set(['default', ...(groupsConfig.tokenGroups || []), selectedToken.group].filter(Boolean))];
+    const groupValues = [...new Set(['default', ...(groupsConfig.tokenGroups || []), selectedToken.group].filter(Boolean))];
+    const groupChoices = groupValues.map(group => ({
+        name: group === 'default' ? 'Aucun groupe' : group,
+        value: group
+    }));
 
     const tokenAnswers = await inquirer.prompt([
         {
