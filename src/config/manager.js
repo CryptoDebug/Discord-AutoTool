@@ -223,6 +223,7 @@ export class ConfigManager {
                 id: channel.id || channel.channelId || Date.now().toString(),
                 channelId: channel.channelId || channel.id,
                 name: channel.name || `Salon-${channel.channelId || channel.id}`,
+                tokenId: channel.tokenId || null,
                 group: channel.group || 'default',
                 createdAt: channel.createdAt || new Date().toISOString(),
                 ...channel
@@ -270,7 +271,7 @@ export class ConfigManager {
         return true;
     }
 
-    async addChannel(channelId, name = '', group = 'default') {
+    async addChannel(channelId, name, tokenId, group = 'default') {
         const config = await this.normalizeSenderConfig();
         const cleanedChannelId = channelId.trim();
 
@@ -282,6 +283,7 @@ export class ConfigManager {
             id: Date.now().toString(),
             channelId: cleanedChannelId,
             name: name || `Salon-${cleanedChannelId}`,
+            tokenId,
             group,
             createdAt: new Date().toISOString()
         });
@@ -315,6 +317,7 @@ export class ConfigManager {
             ...currentChannel,
             channelId,
             name: updates.name !== undefined ? (updates.name || currentChannel.name) : currentChannel.name,
+            tokenId: updates.tokenId !== undefined ? updates.tokenId : currentChannel.tokenId,
             group: updates.group !== undefined ? (updates.group || 'default') : currentChannel.group,
             updatedAt: new Date().toISOString()
         };

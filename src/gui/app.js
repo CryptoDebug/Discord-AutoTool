@@ -363,10 +363,12 @@ app.post('/api/tokens/add', async (req, res) => {
 
 app.get('/channels', async (req, res) => {
     const sender = await configManager.normalizeSenderConfig();
+    const tokens = await configManager.read('tokens');
     const groups = await configManager.read('groups');
 
     res.render('channels', {
         channels: sender.globalChannels || [],
+        tokens: tokens.tokens,
         groups,
         current: 'channels'
     });
@@ -374,14 +376,32 @@ app.get('/channels', async (req, res) => {
 
 app.post('/api/channels/add', async (req, res) => {
     try {
-        const { channelId, name, group } = req.body;
+        const { channelId, tokenId, group } = req.body;
+        const tokensConfig = await configManager.read('tokens');
 
         if (!channelId || !channelId.trim()) {
             res.json({ success: false, error: 'ID de salon obligatoire' });
             return;
         }
 
-        await configManager.addChannel(channelId, name?.trim(), group || 'default');
+        if (!tokenId) {
+            res.json({ success: false, error: 'Token obligatoire' });
+            return;
+        }
+
+        const selectedToken = tokensConfig.tokens.find(token => token.id === tokenId);
+        if (!selectedToken) {
+            res.json({ success: false, error: 'Token introuvable' });
+            return;
+        }
+
+        const validation = await autoSender.validateChannelTarget(selectedToken.token, channelId.trim());
+        if (!validation.valid) {
+            res.json({ success: false, error: validation.error });
+            return;
+        }
+
+        await configManager.addChannel(channelId, validation.channelName, tokenId, group || 'default');
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, error: err.message });
@@ -390,10 +410,30 @@ app.post('/api/channels/add', async (req, res) => {
 
 app.post('/api/channels/update', async (req, res) => {
     try {
-        const { channelConfigId, channelId, name, group } = req.body;
+        const { channelConfigId, channelId, tokenId, group } = req.body;
+        const tokensConfig = await configManager.read('tokens');
+
+        if (!tokenId) {
+            res.json({ success: false, error: 'Token obligatoire' });
+            return;
+        }
+
+        const selectedToken = tokensConfig.tokens.find(token => token.id === tokenId);
+        if (!selectedToken) {
+            res.json({ success: false, error: 'Token introuvable' });
+            return;
+        }
+
+        const validation = await autoSender.validateChannelTarget(selectedToken.token, channelId.trim());
+        if (!validation.valid) {
+            res.json({ success: false, error: validation.error });
+            return;
+        }
+
         const updated = await configManager.updateChannel(channelConfigId, {
             channelId,
-            name: name?.trim(),
+            name: validation.channelName,
+            tokenId,
             group: group?.trim() || 'default'
         });
 

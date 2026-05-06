@@ -15,7 +15,7 @@
             <div>
                 <div class="section-kicker">Salons</div>
                 <h2>Cibles et groupes</h2>
-                <p>Organisez les salons Discord par usage pour les reutiliser dans AutoSender.</p>
+                <p>Organisez les salons Discord par usage pour les réutiliser dans AutoSender.</p>
             </div>
             <span class="badge accent"><%= channels ? channels.length : 0 %> salon(s)</span>
         </section>
@@ -32,7 +32,7 @@
                     <label for="newGroupName">Ajouter un groupe</label>
                     <div class="inline-control">
                         <input type="text" id="newGroupName" placeholder="Nom du groupe">
-                        <button onclick="createChannelGroup()">Creer</button>
+                        <button onclick="createChannelGroup()">Créer</button>
                     </div>
                 </div>
 
@@ -46,7 +46,7 @@
                         <% }); %>
                     </div>
                 <% } else { %>
-                    <div class="empty-state">Aucun groupe personnalise.</div>
+                    <div class="empty-state">Aucun groupe personnalisé.</div>
                 <% } %>
             </article>
 
@@ -63,8 +63,13 @@
                         <input type="text" id="channelId" name="channelId" placeholder="123456789012345678" required>
                     </div>
                     <div class="form-group">
-                        <label for="channelName">Nom</label>
-                        <input type="text" id="channelName" name="name" placeholder="annonces">
+                        <label for="channelTokenId">Token à utiliser</label>
+                        <select id="channelTokenId" name="tokenId" required>
+                            <option value="">Sélectionner un token</option>
+                            <% tokens.forEach(token => { %>
+                                <option value="<%= token.id %>"><%= token.name %> (<%= token.group %>)</option>
+                            <% }); %>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="channelGroup">Groupe</label>
@@ -83,7 +88,7 @@
                 <div class="card-header">
                     <div>
                         <div class="card-topline">Inventaire</div>
-                        <h2>Salons configures</h2>
+                        <h2>Salons configurés</h2>
                     </div>
                 </div>
                 <% if (channels && channels.length > 0) { %>
@@ -96,12 +101,15 @@
                                     <th>Nom</th>
                                     <th>Groupe</th>
                                     <th>ID salon</th>
-                                    <th>Cree le</th>
+                                    <th>Token</th>
+                                    <th>Créé le</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="channelsTableBody">
-                                <% channels.forEach(channel => { %>
+                                <% channels.forEach(channel => {
+                                    const token = tokens.find(t => t.id === channel.tokenId);
+                                %>
                                     <tr class="sortable-row" draggable="true" data-channel-config-id="<%= channel.id %>">
                                         <td>
                                             <span class="drag-handle" title="Glisser pour deplacer">|||</span>
@@ -109,6 +117,7 @@
                                         <td><strong><%= channel.name %></strong></td>
                                         <td><span class="badge accent"><%= channel.group %></span></td>
                                         <td><code><%= channel.channelId %></code></td>
+                                        <td><%= token ? token.name : 'Token introuvable' %></td>
                                         <td><%= new Date(channel.createdAt).toLocaleDateString('fr-FR') %></td>
                                         <td>
                                             <div class="actions">
@@ -118,6 +127,7 @@
                                                     data-channel-name="<%= channel.name %>"
                                                     data-channel-group="<%= channel.group %>"
                                                     data-channel-id="<%= channel.channelId %>"
+                                                    data-token-id="<%= channel.tokenId || '' %>"
                                                     onclick="editChannel(this)"
                                                 >Modifier</button>
                                                 <button
@@ -135,7 +145,7 @@
                         </table>
                     </div>
                 <% } else { %>
-                    <div class="empty-state">Aucun salon configure.</div>
+                    <div class="empty-state">Aucun salon configuré.</div>
                 <% } %>
             </article>
         </section>
@@ -153,16 +163,20 @@
             <form id="editChannelForm" class="form-grid">
                 <input type="hidden" id="editChannelConfigId" name="channelConfigId">
                 <div class="form-group">
-                    <label for="editChannelName">Nom</label>
-                    <input type="text" id="editChannelName" name="name" placeholder="annonces">
-                </div>
-                <div class="form-group">
                     <label for="editChannelGroup">Groupe</label>
                     <select id="editChannelGroup" name="group">
                         <option value="default">Aucun groupe</option>
                         <% if (groups.channelGroups) { groups.channelGroups.forEach(group => { %>
                             <option value="<%= group %>"><%= group %></option>
                         <% }); } %>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editChannelTokenId">Token à utiliser</label>
+                    <select id="editChannelTokenId" name="tokenId" required>
+                        <% tokens.forEach(token => { %>
+                            <option value="<%= token.id %>"><%= token.name %> (<%= token.group %>)</option>
+                        <% }); %>
                     </select>
                 </div>
                 <div class="form-group span-full">
@@ -311,13 +325,13 @@
 
         function editChannel(button) {
             document.getElementById('editChannelConfigId').value = button.dataset.channelConfigId;
-            document.getElementById('editChannelName').value = button.dataset.channelName || '';
             document.getElementById('editChannelGroup').value = button.dataset.channelGroup || 'default';
+            document.getElementById('editChannelTokenId').value = button.dataset.tokenId || '';
             document.getElementById('editChannelId').value = button.dataset.channelId || '';
             editChannelError.hidden = true;
             editChannelError.textContent = '';
             editChannelModal.hidden = false;
-            document.getElementById('editChannelName').focus();
+            document.getElementById('editChannelId').focus();
         }
 
         function closeEditChannelModal() {
@@ -332,7 +346,13 @@
             const data = Object.fromEntries(new FormData(editChannelForm));
 
             if (!data.channelId.trim()) {
-                editChannelError.textContent = "L'ID du salon ne peut pas etre vide.";
+                editChannelError.textContent = "L'ID du salon ne peut pas être vide.";
+                editChannelError.hidden = false;
+                return;
+            }
+
+            if (!data.tokenId) {
+                editChannelError.textContent = 'Sélectionnez un token.';
                 editChannelError.hidden = false;
                 return;
             }
@@ -342,8 +362,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     channelConfigId: data.channelConfigId,
-                    name: data.name.trim(),
                     group: data.group,
+                    tokenId: data.tokenId,
                     channelId: data.channelId.trim()
                 })
             });
@@ -434,7 +454,7 @@
         }
 
         async function deleteChannelGroup(groupName) {
-            if (confirm('Etes-vous sur ? Cela supprimera tous les salons du groupe.')) {
+            if (confirm('Êtes-vous sûr ? Cela supprimera tous les salons du groupe.')) {
                 const res = await fetch('/api/channels/group/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

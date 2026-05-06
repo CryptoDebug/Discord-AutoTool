@@ -1,4 +1,5 @@
 ﻿import { Client } from 'discord.js-selfbot-v13';
+import { Permissions } from 'discord.js-selfbot-v13';
 import { ConfigManager } from '../../config/manager.js';
 import { Logger } from '../logging.js';
 import { applySelfbotCompatPatch } from '../selfbot-compat.js';
@@ -190,6 +191,76 @@ export class AutoSender {
                 error: err.message
             });
         }
+    }
+
+    async validateChannelTarget(token, channelId) {
+        const client = new Client();
+
+        try {
+            await client.login(token);
+            await this.waitForReady(client);
+            const channel = await client.channels.fetch(channelId).catch(() => null);
+
+            if (!channel) {
+                return {
+                    valid: false,
+                    error: "Salon introuvable avec ce token. Vérifiez l'ID du salon ou le token sélectionné."
+                };
+            }
+
+            if (!channel.isText()) {
+                return {
+                    valid: false,
+                    error: 'Le salon doit être un salon textuel.'
+                };
+            }
+
+            const permissions = channel.permissionsFor(client.user);
+            if (!permissions?.has(Permissions.FLAGS.VIEW_CHANNEL, false)) {
+                return {
+                    valid: false,
+                    error: 'Le salon est inaccessible avec ce token.'
+                };
+            }
+
+            if (!permissions?.has(Permissions.FLAGS.SEND_MESSAGES, false)) {
+                return {
+                    valid: false,
+                    error: 'Le salon est en lecture seule pour ce token.'
+                };
+            }
+
+            return {
+                valid: true,
+                channelName: channel.name,
+                guildName: channel.guild?.name || 'DM'
+            };
+        } catch (err) {
+            return {
+                valid: false,
+                error: err.message
+            };
+        } finally {
+            try {
+                await client.destroy();
+            } catch {
+                // Ignore cleanup errors after validation.
+            }
+        }
+    }
+
+    async waitForReady(client) {
+        if (client.readyAt) {
+            return;
+        }
+
+        await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Connexion du token trop lente')), 15000);
+            client.once('ready', () => {
+                clearTimeout(timeout);
+                resolve();
+            });
+        });
     }
 
     calculateDelay(message, settings) {
