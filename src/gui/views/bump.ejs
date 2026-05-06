@@ -15,7 +15,7 @@
             <div>
                 <div class="section-kicker">AutoBump</div>
                 <h2>Serveurs et planification</h2>
-                <p>Associez vos serveurs aux tokens, ajustez les delais et gardez le bump automatique sous controle.</p>
+                <p>Associez vos serveurs aux tokens, ajustez les délais et gardez le bump automatique sous contrôle.</p>
             </div>
             <span class="badge <%= config.enabled ? 'success' : 'danger' %>"><%= config.enabled ? 'Actif' : 'Inactif' %></span>
         </section>
@@ -35,36 +35,36 @@
             </div>
             <div class="stat">
                 <div class="stat-value"><%= config.settings.humanize ? config.settings.humanizeMin + '-' + config.settings.humanizeMax : 'OFF' %></div>
-                <div class="stat-label">delai aleatoire (min)</div>
+                <div class="stat-label">délai aléatoire (min)</div>
             </div>
         </section>
 
         <section class="main-content">
             <article class="card span-full control-card">
                 <div>
-                    <div class="card-topline">Controle</div>
-                    <h2>Lancer ou arreter AutoBump</h2>
-                    <p>Demarrez le cycle automatique quand vos serveurs et tokens sont prets.</p>
+                    <div class="card-topline">Contrôle</div>
+                    <h2>Lancer ou arrêter AutoBump</h2>
+                    <p>Démarrez le cycle automatique quand vos serveurs et tokens sont prêts.</p>
                 </div>
                 <div class="actions control-actions">
-                    <button id="enableBtn" class="success" onclick="enableBump()">Demarrer</button>
-                    <button id="disableBtn" class="danger" onclick="disableBump()">Arreter</button>
+                    <button id="enableBtn" class="success" onclick="enableBump()">Démarrer</button>
+                    <button id="disableBtn" class="danger" onclick="disableBump()">Arrêter</button>
                 </div>
             </article>
 
             <article class="card">
                 <div class="card-header">
                     <div>
-                        <div class="card-topline">Parametres</div>
+                        <div class="card-topline">Paramètres</div>
                         <h2>Rythme de bump</h2>
                     </div>
                 </div>
                 <form id="bumpSettingsForm" class="form-grid compact-form">
                     <div class="form-group span-full">
-                        <label for="humanize">Delai aleatoire</label>
+                        <label for="humanize">Délai aléatoire</label>
                         <select id="humanize" name="humanize">
                             <option value="true" <%= config.settings.humanize ? 'selected' : '' %>>Activer</option>
-                            <option value="false" <%= !config.settings.humanize ? 'selected' : '' %>>Desactiver</option>
+                            <option value="false" <%= !config.settings.humanize ? 'selected' : '' %>>Désactiver</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -84,7 +84,7 @@
                     </div>
                 </form>
                 <div class="modal-error" id="settingsError" hidden></div>
-                <div class="alert alert-success" id="settingsSuccess" hidden>Parametres enregistres.</div>
+                <div class="alert alert-success" id="settingsSuccess" hidden>Paramètres enregistrés.</div>
             </article>
 
             <article class="card">
@@ -104,9 +104,9 @@
                         <input type="text" id="bumpChannelId" name="bumpChannelId" placeholder="987654321" required>
                     </div>
                     <div class="form-group span-full">
-                        <label for="tokenId">Token a utiliser</label>
+                        <label for="tokenId">Token à utiliser</label>
                         <select id="tokenId" name="tokenId" required>
-                            <option value="">Selectionner un token</option>
+                            <option value="">Sélectionner un token</option>
                             <% tokens.forEach(token => { %>
                                 <option value="<%= token.id %>"><%= token.name %> (<%= token.group %>)</option>
                             <% }); %>
@@ -127,7 +127,7 @@
                 <div class="card-header">
                     <div>
                         <div class="card-topline">Inventaire</div>
-                        <h2>Serveurs configures</h2>
+                        <h2>Serveurs configurés</h2>
                     </div>
                     <span class="badge accent"><%= config.servers ? config.servers.length : 0 %> serveur(s)</span>
                 </div>
@@ -140,7 +140,7 @@
                                     <th>ID serveur</th>
                                     <th>Salon bump</th>
                                     <th>Token</th>
-                                    <th>Etat</th>
+                                    <th>État</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -175,7 +175,7 @@
                         </table>
                     </div>
                 <% } else { %>
-                    <div class="empty-state">Aucun serveur configure.</div>
+                    <div class="empty-state">Aucun serveur configuré.</div>
                 <% } %>
             </article>
         </section>
@@ -236,7 +236,7 @@
             const result = await res.json();
 
             if (result.success) {
-                showInlineMessage(settingsSuccess, 'Parametres enregistres.');
+                showInlineMessage(settingsSuccess, 'Paramètres enregistrés.');
             } else {
                 showInlineMessage(settingsError, 'Erreur: ' + result.error);
             }
