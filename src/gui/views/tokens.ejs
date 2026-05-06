@@ -87,10 +87,12 @@
                     </div>
                 </div>
                 <% if (tokens && tokens.length > 0) { %>
+                    <div class="modal-error" id="tokenOrderError" hidden></div>
                     <div class="table-wrap">
                         <table>
                             <thead>
                                 <tr>
+                                    <th>Ordre</th>
                                     <th>Nom</th>
                                     <th>Groupe</th>
                                     <th>Token</th>
@@ -98,9 +100,12 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="tokensTableBody">
                                 <% tokens.forEach(token => { %>
-                                    <tr>
+                                    <tr class="token-row" draggable="true" data-token-id="<%= token.id %>">
+                                        <td>
+                                            <span class="drag-handle" title="Glisser pour deplacer">|||</span>
+                                        </td>
                                         <td><strong><%= token.name %></strong></td>
                                         <td><span class="badge accent"><%= token.group %></span></td>
                                         <td>
@@ -212,6 +217,9 @@
         const editTokenError = document.getElementById('editTokenError');
         const deleteTokenModal = document.getElementById('deleteTokenModal');
         const deleteTokenError = document.getElementById('deleteTokenError');
+        const tokensTableBody = document.getElementById('tokensTableBody');
+        const tokenOrderError = document.getElementById('tokenOrderError');
+        let draggedTokenRow = null;
 
         document.getElementById('addTokenForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -239,6 +247,92 @@
             } catch (err) {
                 alert('Impossible de copier le token.');
             }
+        }
+
+        function getDragAfterRow(container, y) {
+            const rows = [...container.querySelectorAll('.token-row:not(.dragging)')];
+
+            return rows.reduce((closest, row) => {
+                const box = row.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset, row };
+                }
+
+                return closest;
+            }, { offset: Number.NEGATIVE_INFINITY, row: null }).row;
+        }
+
+        async function saveTokenOrder() {
+            if (!tokensTableBody) {
+                return;
+            }
+
+            const tokenIds = [...tokensTableBody.querySelectorAll('.token-row')]
+                .map(row => row.dataset.tokenId);
+
+            try {
+                const res = await fetch('/api/tokens/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tokenIds })
+                });
+
+                if (!res.ok) {
+                    throw new Error('Route de tri indisponible. Redemarrez la GUI.');
+                }
+
+                const result = await res.json();
+                if (!result.success) {
+                    throw new Error(result.error || "Impossible d'enregistrer l'ordre.");
+                }
+
+                tokenOrderError.hidden = true;
+                tokenOrderError.textContent = '';
+            } catch (err) {
+                tokenOrderError.textContent = err.message || "Impossible d'enregistrer l'ordre.";
+                tokenOrderError.hidden = false;
+            }
+        }
+
+        if (tokensTableBody) {
+            tokensTableBody.addEventListener('dragstart', (e) => {
+                const row = e.target.closest('.token-row');
+                if (!row) {
+                    return;
+                }
+
+                draggedTokenRow = row;
+                row.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', row.dataset.tokenId);
+            });
+
+            tokensTableBody.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterRow = getDragAfterRow(tokensTableBody, e.clientY);
+
+                if (!draggedTokenRow) {
+                    return;
+                }
+
+                if (afterRow) {
+                    tokensTableBody.insertBefore(draggedTokenRow, afterRow);
+                } else {
+                    tokensTableBody.appendChild(draggedTokenRow);
+                }
+            });
+
+            tokensTableBody.addEventListener('dragend', async () => {
+                if (!draggedTokenRow) {
+                    return;
+                }
+
+                draggedTokenRow.classList.remove('dragging');
+                draggedTokenRow = null;
+                await saveTokenOrder();
+            });
         }
 
         function editToken(button) {

@@ -288,6 +288,28 @@ app.post('/api/tokens/remove', async (req, res) => {
     }
 });
 
+app.post('/api/tokens/reorder', async (req, res) => {
+    try {
+        const { tokenIds } = req.body;
+
+        if (!Array.isArray(tokenIds)) {
+            res.json({ success: false, error: 'Ordre invalide' });
+            return;
+        }
+
+        const reordered = await configManager.reorderTokens(tokenIds);
+
+        if (!reordered) {
+            res.json({ success: false, error: 'Liste de tokens invalide' });
+            return;
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
 app.post('/api/tokens/group/create', async (req, res) => {
     try {
         const { groupName } = req.body;

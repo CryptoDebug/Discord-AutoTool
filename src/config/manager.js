@@ -134,6 +134,19 @@ export class ConfigManager {
         return await this.write('tokens', config);
     }
 
+    async reorderTokens(tokenIds = []) {
+        const config = await this.read('tokens');
+        const tokenById = new Map(config.tokens.map(token => [token.id, token]));
+        const uniqueIds = new Set(tokenIds);
+
+        if (uniqueIds.size !== config.tokens.length || tokenIds.some(tokenId => !tokenById.has(tokenId))) {
+            return false;
+        }
+
+        config.tokens = tokenIds.map(tokenId => tokenById.get(tokenId));
+        return await this.write('tokens', config);
+    }
+
     async getTokensByGroup(groupName) {
         const config = await this.read('tokens');
         return config.tokens.filter(t => t.group === groupName);

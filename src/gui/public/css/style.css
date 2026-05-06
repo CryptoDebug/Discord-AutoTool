@@ -581,6 +581,34 @@ tr:hover td {
     background: rgba(255, 255, 255, 0.035);
 }
 
+.token-row {
+    cursor: grab;
+}
+
+.token-row.dragging {
+    opacity: 0.46;
+}
+
+.token-row.dragging td {
+    background: rgba(94, 234, 212, 0.08);
+}
+
+.drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    min-height: 32px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--muted);
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    user-select: none;
+}
+
 code {
     color: rgba(246, 243, 237, 0.78);
     word-break: break-all;
