@@ -34,10 +34,9 @@ export class AutoBumper {
             return;
         }
 
-        const enabledServers = config.servers.filter(server => server.enabled);
         const serversByToken = new Map();
 
-        for (const server of enabledServers) {
+        for (const server of config.servers) {
             const token = tokensConfig.tokens.find(t => t.id === server.tokenId);
             if (!token) {
                 await this.logger.error('Token non trouvé', { serverId: server.id });
@@ -125,13 +124,38 @@ export class AutoBumper {
 
         let currentIndex = 0;
 
-        const scheduleNextBump = () => {
-            const delay = this.calculateDelay(settings, servers.length, currentIndex);
+        const getEnabledServers = async () => {
+            const latestConfig = await this.configManager.read('bump');
+            const enabledServerIds = new Set(
+                (latestConfig.servers || [])
+                    .filter(server => server.enabled && server.tokenId === tokenId)
+                    .map(server => server.id)
+            );
+
+            return servers.filter(server => enabledServerIds.has(server.id));
+        };
+
+        const scheduleNextBump = async () => {
+            const enabledServers = await getEnabledServers();
+            if (enabledServers.length === 0) {
+                const timeout = setTimeout(scheduleNextBump, DIFFERENT_SERVER_INTERVAL);
+                this.bumpSchedules.set(scheduleKey, timeout);
+                return;
+            }
+
+            currentIndex = currentIndex % enabledServers.length;
+            const delay = this.calculateDelay(settings, enabledServers.length, currentIndex);
             const timeout = setTimeout(async () => {
-                const server = servers[currentIndex];
-                currentIndex = (currentIndex + 1) % servers.length;
-                await this.performBump(client, server);
-                scheduleNextBump();
+                const latestEnabledServers = await getEnabledServers();
+
+                if (latestEnabledServers.length > 0) {
+                    currentIndex = currentIndex % latestEnabledServers.length;
+                    const server = latestEnabledServers[currentIndex];
+                    currentIndex = (currentIndex + 1) % latestEnabledServers.length;
+                    await this.performBump(client, server);
+                }
+
+                await scheduleNextBump();
             }, delay);
 
             this.bumpSchedules.set(scheduleKey, timeout);
@@ -139,9 +163,12 @@ export class AutoBumper {
 
         this.bumpSchedules.set(scheduleKey, null);
         await this.wait(READY_SETTLE_DELAY);
-        await this.performBump(client, servers[currentIndex]);
-        currentIndex = (currentIndex + 1) % servers.length;
-        scheduleNextBump();
+        const enabledServers = await getEnabledServers();
+        if (enabledServers.length > 0) {
+            await this.performBump(client, enabledServers[currentIndex]);
+            currentIndex = (currentIndex + 1) % enabledServers.length;
+        }
+        await scheduleNextBump();
     }
 
     async performBump(client, server, retry = true) {
@@ -365,7 +392,8 @@ export class AutoBumper {
 
             return {
                 valid: true,
-                serverName: guild.name
+                serverName: guild.name,
+                channelName: channel.name
             };
         } catch (err) {
             return {

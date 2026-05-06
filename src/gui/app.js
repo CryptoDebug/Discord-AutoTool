@@ -124,6 +124,7 @@ app.post('/api/bump/server/add', async (req, res) => {
             bumpChannelId,
             tokenId,
             name: validation.serverName,
+            bumpChannelName: validation.channelName,
             enabled: enabled !== 'false',
             createdAt: new Date().toISOString()
         });
@@ -165,11 +166,37 @@ app.post('/api/bump/server/update', async (req, res) => {
         }
 
         server.bumpChannelId = bumpChannelId;
+        server.bumpChannelName = validation.channelName;
         server.tokenId = tokenId;
         server.name = validation.serverName;
         server.updatedAt = new Date().toISOString();
 
         await configManager.write('bump', config);
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/bump/server/toggle', async (req, res) => {
+    try {
+        const { serverId, enabled } = req.body;
+        const config = await configManager.read('bump');
+        const server = config.servers.find(item => item.id === serverId);
+
+        if (!server) {
+            res.json({ success: false, error: 'Serveur introuvable' });
+            return;
+        }
+
+        server.enabled = parseBoolean(enabled);
+        server.updatedAt = new Date().toISOString();
+        await configManager.write('bump', config);
+
+        if (config.enabled && server.enabled && !autoBumper.bumpSchedules.has(server.tokenId)) {
+            autoBumper.startBumping();
+        }
+
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, error: err.message });

@@ -160,14 +160,25 @@
                             <tbody id="bumpServersTableBody">
                                 <% config.servers.forEach(server => {
                                     const token = tokens.find(t => t.id === server.tokenId);
+                                    const bumpChannelName = server.bumpChannelName || 'Salon bump';
                                 %>
-                                    <tr class="sortable-row server-row" draggable="true" data-server-config-id="<%= server.id %>">
+                                    <tr
+                                        class="sortable-row server-row"
+                                        draggable="true"
+                                        data-server-config-id="<%= server.id %>"
+                                        data-search="<%= server.name %> <%= server.serverId %> <%= bumpChannelName %> <%= server.bumpChannelId %>"
+                                        data-token="<%= token ? token.name : '' %>"
+                                        data-enabled="<%= server.enabled ? 1 : 0 %>"
+                                    >
                                         <td>
                                             <span class="drag-handle" title="Glisser pour déplacer">|||</span>
                                         </td>
                                         <td><strong><%= server.name %></strong></td>
                                         <td><code><%= server.serverId %></code></td>
-                                        <td><code><%= server.bumpChannelId %></code></td>
+                                        <td>
+                                            <strong><%= bumpChannelName %></strong><br>
+                                            <code>(<%= server.bumpChannelId %>)</code>
+                                        </td>
                                         <td><%= token ? token.name : 'Token introuvable' %></td>
                                         <td>
                                             <span class="badge <%= server.enabled ? 'success' : 'danger' %>">
@@ -176,6 +187,13 @@
                                         </td>
                                         <td>
                                             <div class="actions">
+                                                <button
+                                                    type="button"
+                                                    class="<%= server.enabled ? 'secondary-button' : 'success' %>"
+                                                    data-server-id="<%= server.id %>"
+                                                    data-enabled="<%= server.enabled ? 'false' : 'true' %>"
+                                                    onclick="toggleServer(this)"
+                                                ><%= server.enabled ? 'Désactiver' : 'Activer' %></button>
                                                 <button
                                                     type="button"
                                                     data-server-id="<%= server.id %>"
@@ -498,6 +516,25 @@
                 location.reload();
             } else {
                 showInlineMessage(deleteServerError, 'Erreur: ' + result.error);
+            }
+        }
+
+        async function toggleServer(button) {
+            hideInlineMessages();
+            const res = await fetch('/api/bump/server/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    serverId: button.dataset.serverId,
+                    enabled: button.dataset.enabled
+                })
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                location.reload();
+            } else {
+                showInlineMessage(serverOrderError, 'Erreur: ' + result.error);
             }
         }
 
