@@ -15,78 +15,97 @@
             <div>
                 <div class="section-kicker">Webhooks</div>
                 <h2>Notifications Discord</h2>
-                <p>Configurez les événements qui seront envoyés dans votre salon de logs Discord.</p>
+                <p>Envoyez les logs importants dans un salon Discord dedie.</p>
             </div>
-            <span class="badge <%= webhooks.enabled ? 'success' : 'danger' %>"><%= webhooks.enabled ? 'Actifs' : 'Inactifs' %></span>
+            <span class="badge <%= webhooks.enabled ? 'success' : 'danger' %>"><%= webhooks.enabled ? 'Actif' : 'Inactif' %></span>
         </section>
 
         <section class="main-content">
-            <article class="card span-full">
-                <div class="card-header">
-                    <div>
-                        <div class="card-topline">Configuration</div>
-                        <h2>Webhook Discord</h2>
-                    </div>
+            <article class="card span-full control-card">
+                <div>
+                    <div class="card-topline">Controle</div>
+                    <h2>Lancer ou arreter les notifications</h2>
+                    <p>Activez l'envoi des evenements vers le webhook Discord configure.</p>
                 </div>
-
-                <div class="notice">
-                    <h3>Instructions</h3>
-                    <ol>
-                        <li>Ouvrez les paramètres du serveur Discord concerné.</li>
-                        <li>Allez dans Intégrations, puis Webhooks.</li>
-                        <li>Créez un webhook et copiez son URL.</li>
-                        <li>Collez l'URL dans le champ ci-dessous.</li>
-                    </ol>
+                <div class="actions control-actions">
+                    <button id="enableWebhookBtn" class="success" onclick="enableWebhooks()">Demarrer</button>
+                    <button id="disableWebhookBtn" class="danger" onclick="disableWebhooks()">Arreter</button>
                 </div>
-
-                <form id="webhookForm" class="form-grid">
-                    <label class="form-group check-row">
-                        <input type="checkbox" id="enabled" name="enabled" <%= webhooks.enabled ? 'checked' : '' %>>
-                        Webhooks activés
-                    </label>
-
-                    <div class="form-group span-full">
-                        <label for="url">URL du webhook</label>
-                        <input type="url" id="url" name="url" placeholder="https://discord.com/api/webhooks/..." value="<%= webhooks.url %>">
-                    </div>
-
-                    <label class="form-group check-row">
-                        <input type="checkbox" id="logErrors" name="logErrors" <%= webhooks.logErrors ? 'checked' : '' %>>
-                        Journaliser les erreurs
-                    </label>
-
-                    <label class="form-group check-row">
-                        <input type="checkbox" id="logSuccess" name="logSuccess" <%= webhooks.logSuccess ? 'checked' : '' %>>
-                        Journaliser les succès
-                    </label>
-
-                    <button type="submit">Enregistrer</button>
-                </form>
             </article>
 
             <article class="card span-full">
                 <div class="card-header">
                     <div>
-                        <div class="card-topline">Référence</div>
-                        <h2>Événements loggés</h2>
+                        <div class="card-topline">Parametres</div>
+                        <h2>Destination et niveau de logs</h2>
+                    </div>
+                </div>
+
+                <form id="webhookForm" class="form-grid webhook-form">
+                    <input type="hidden" id="enabled" name="enabled" value="<%= webhooks.enabled ? 'true' : 'false' %>">
+
+                    <div class="form-group span-full">
+                        <label for="url">URL du webhook Discord</label>
+                        <input type="url" id="url" name="url" placeholder="https://discord.com/api/webhooks/..." value="<%= webhooks.url %>">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="logErrors">Erreurs</label>
+                        <select id="logErrors" name="logErrors">
+                            <option value="true" <%= webhooks.logErrors ? 'selected' : '' %>>Envoyer dans Discord</option>
+                            <option value="false" <%= !webhooks.logErrors ? 'selected' : '' %>>Ne pas envoyer</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="logSuccess">Succes</label>
+                        <select id="logSuccess" name="logSuccess">
+                            <option value="true" <%= webhooks.logSuccess ? 'selected' : '' %>>Envoyer dans Discord</option>
+                            <option value="false" <%= !webhooks.logSuccess ? 'selected' : '' %>>Ne pas envoyer</option>
+                        </select>
+                    </div>
+
+                    <div class="form-actions webhook-save-action">
+                        <button type="submit">Enregistrer</button>
+                    </div>
+                </form>
+
+                <div class="notice compact-notice">
+                    <h3>Creer une URL webhook</h3>
+                    <ol>
+                        <li>Ouvrez les parametres du serveur Discord.</li>
+                        <li>Allez dans Integrations, puis Webhooks.</li>
+                        <li>Creez un webhook, copiez son URL, puis collez-la ici.</li>
+                    </ol>
+                </div>
+
+                <div class="modal-error" id="webhookError" hidden></div>
+                <div class="alert alert-success" id="webhookSuccess" hidden>Configuration enregistree.</div>
+            </article>
+
+            <article class="card span-full">
+                <div class="card-header">
+                    <div>
+                        <div class="card-topline">Reference</div>
+                        <h2>Evenements envoyes</h2>
                     </div>
                 </div>
                 <div class="event-grid">
                     <div class="event-card">
-                        <span class="badge success">Succès</span>
+                        <span class="badge success">Succes</span>
                         <ul>
-                            <li>Bump effectué</li>
-                            <li>Message envoyé</li>
-                            <li>Client connecté</li>
+                            <li>Bump effectue</li>
+                            <li>Message envoye</li>
+                            <li>Client connecte</li>
                         </ul>
                     </div>
 
                     <div class="event-card">
                         <span class="badge danger">Erreurs</span>
                         <ul>
-                            <li>Compte désactivé</li>
+                            <li>Compte desactive</li>
                             <li>Permissions insuffisantes</li>
-                            <li>Salon supprimé</li>
+                            <li>Salon supprime</li>
                             <li>Rate limited</li>
                         </ul>
                     </div>
@@ -94,7 +113,7 @@
                     <div class="event-card">
                         <span class="badge accent">Avertissements</span>
                         <ul>
-                            <li>Slowmode détecté</li>
+                            <li>Slowmode detecte</li>
                             <li>Compte mute</li>
                             <li>Salon non textuel</li>
                         </ul>
@@ -107,17 +126,70 @@
     <%- include('footer') %>
 
     <script>
-        document.getElementById('webhookForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const data = new FormData(e.target);
+        const webhookError = document.getElementById('webhookError');
+        const webhookSuccess = document.getElementById('webhookSuccess');
+        const enabledInput = document.getElementById('enabled');
+
+        function showWebhookMessage(type, message) {
+            webhookError.hidden = true;
+            webhookSuccess.hidden = true;
+
+            if (type === 'error') {
+                webhookError.textContent = message;
+                webhookError.hidden = false;
+            } else {
+                webhookSuccess.textContent = message;
+                webhookSuccess.hidden = false;
+            }
+        }
+
+        async function saveWebhookConfig(nextEnabled = enabledInput.value) {
+            const data = Object.fromEntries(new FormData(document.getElementById('webhookForm')));
+            data.enabled = nextEnabled;
+
             const res = await fetch('/api/webhooks/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(Object.fromEntries(data))
+                body: JSON.stringify(data)
             });
             const result = await res.json();
-            alert(result.success ? 'Webhooks configurés !' : 'Erreur: ' + result.error);
+
+            if (!result.success) {
+                throw new Error(result.error || "Impossible d'enregistrer les webhooks.");
+            }
+
+            enabledInput.value = nextEnabled;
+            return result;
+        }
+
+        document.getElementById('webhookForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            try {
+                await saveWebhookConfig();
+                showWebhookMessage('success', 'Configuration enregistree.');
+            } catch (err) {
+                showWebhookMessage('error', 'Erreur: ' + err.message);
+            }
         });
+
+        async function enableWebhooks() {
+            try {
+                await saveWebhookConfig('true');
+                location.reload();
+            } catch (err) {
+                showWebhookMessage('error', 'Erreur: ' + err.message);
+            }
+        }
+
+        async function disableWebhooks() {
+            try {
+                await saveWebhookConfig('false');
+                location.reload();
+            } catch (err) {
+                showWebhookMessage('error', 'Erreur: ' + err.message);
+            }
+        }
     </script>
 </body>
 </html>

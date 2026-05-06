@@ -38,6 +38,9 @@ const logger = new Logger();
 
 let isRunning = false;
 
+function parseBoolean(value) {
+    return value === true || value === 'true' || value === 'on';
+}
 
 app.get('/', async (req, res) => {
     const bumpConfig = await configManager.read('bump');
@@ -339,12 +342,34 @@ app.post('/api/webhooks/config', async (req, res) => {
     try {
         const { enabled, url, logErrors, logSuccess } = req.body;
         const config = {
-            enabled: enabled === 'true',
+            enabled: parseBoolean(enabled),
             url,
-            logErrors: logErrors === 'true',
-            logSuccess: logSuccess === 'true'
+            logErrors: parseBoolean(logErrors),
+            logSuccess: parseBoolean(logSuccess)
         };
 
+        await configManager.write('webhook', config);
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/webhooks/enable', async (req, res) => {
+    try {
+        const config = await configManager.read('webhook');
+        config.enabled = true;
+        await configManager.write('webhook', config);
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/webhooks/disable', async (req, res) => {
+    try {
+        const config = await configManager.read('webhook');
+        config.enabled = false;
         await configManager.write('webhook', config);
         res.json({ success: true });
     } catch (err) {

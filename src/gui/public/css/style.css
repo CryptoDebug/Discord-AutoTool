@@ -396,6 +396,20 @@ form {
     grid-column: 1 / -1;
 }
 
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.webhook-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    align-items: end;
+}
+
+.webhook-save-action {
+    align-self: end;
+}
+
 label {
     color: var(--text);
     font-size: 0.86rem;
@@ -693,6 +707,10 @@ code {
     margin-bottom: 18px;
 }
 
+.compact-notice {
+    margin: 18px 0 0;
+}
+
 .app-footer {
     width: min(1180px, calc(100% - 32px));
     margin: 0 auto;
@@ -832,6 +850,8 @@ code {
     .control-actions,
     .control-actions button,
     .inline-control button,
+    .webhook-save-action,
+    .webhook-save-action button,
     .modal-actions,
     .modal-actions button {
         width: 100%;
