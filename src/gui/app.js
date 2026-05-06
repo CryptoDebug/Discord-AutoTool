@@ -2,6 +2,7 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { exec } from 'child_process';
+import { Client } from 'discord.js-selfbot-v13';
 import { ConfigManager } from '../config/manager.js';
 import { AutoBumper } from '../features/autobump/bumper.js';
 import { AutoSender } from '../features/autosender/sender.js';
@@ -40,6 +41,29 @@ let isRunning = false;
 
 function parseBoolean(value) {
     return value === true || value === 'true' || value === 'on';
+}
+
+function createCaptchaSolver(captchaKey) {
+    if (captchaKey?.trim()) {
+        return async () => captchaKey.trim();
+    }
+
+    return async (captcha, userAgent) => {
+        const err = new Error('CAPTCHA_REQUIRED');
+        err.captcha = captcha;
+        err.userAgent = userAgent;
+        throw err;
+    };
+}
+
+function formatCaptchaPayload(err) {
+    return {
+        service: err.captcha?.captcha_service || 'hcaptcha',
+        sitekey: err.captcha?.captcha_sitekey || '',
+        rqdata: err.captcha?.captcha_rqdata || '',
+        rqtoken: err.captcha?.captcha_rqtoken || '',
+        userAgent: err.userAgent || ''
+    };
 }
 
 app.get('/', async (req, res) => {
@@ -594,6 +618,66 @@ app.post('/api/tokens/reorder', async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/tokens/join', async (req, res) => {
+    const client = new Client({
+        captchaSolver: createCaptchaSolver(req.body.captchaKey)
+    });
+
+    try {
+        const { tokenId, invite } = req.body;
+
+        if (!tokenId) {
+            res.json({ success: false, error: 'Token obligatoire' });
+            return;
+        }
+
+        if (!invite || !invite.trim()) {
+            res.json({ success: false, error: "Lien d'invitation obligatoire" });
+            return;
+        }
+
+        const tokensConfig = await configManager.read('tokens');
+        const selectedToken = tokensConfig.tokens.find(token => token.id === tokenId);
+
+        if (!selectedToken) {
+            res.json({ success: false, error: 'Token introuvable' });
+            return;
+        }
+
+        await client.login(selectedToken.token);
+        const inviteInfo = await client.fetchInvite(invite.trim());
+        const alreadyJoined = Boolean(inviteInfo.guild?.id && client.guilds.cache.has(inviteInfo.guild.id));
+        const joined = await client.acceptInvite(invite.trim(), {
+            bypassOnboarding: true,
+            bypassVerify: true
+        });
+
+        res.json({
+            success: true,
+            alreadyJoined,
+            name: joined?.name || inviteInfo.guild?.name || inviteInfo.channel?.name || 'Invitation acceptee'
+        });
+    } catch (err) {
+        if (err.message === 'CAPTCHA_REQUIRED') {
+            res.json({
+                success: false,
+                requiresCaptcha: true,
+                captcha: formatCaptchaPayload(err),
+                error: 'Captcha requis. Renseignez la reponse hCaptcha puis relancez.'
+            });
+            return;
+        }
+
+        res.json({ success: false, error: err.message });
+    } finally {
+        try {
+            await client.destroy();
+        } catch {
+            // Ignore cleanup errors after joining.
+        }
     }
 });
 

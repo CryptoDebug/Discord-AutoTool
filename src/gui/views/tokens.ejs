@@ -143,22 +143,31 @@
                                         </td>
                                         <td><%= new Date(token.createdAt).toLocaleDateString('fr-FR') %></td>
                                         <td>
-                                            <div class="actions">
+                                            <div class="actions stacked-actions">
                                                 <button
                                                     type="button"
+                                                    class="success"
                                                     data-token-id="<%= token.id %>"
                                                     data-token-name="<%= token.name %>"
-                                                    data-token-group="<%= token.group %>"
-                                                    data-token-value="<%= token.token %>"
-                                                    onclick="editToken(this)"
-                                                >Modifier</button>
-                                                <button
-                                                    type="button"
-                                                    class="danger"
-                                                    data-token-id="<%= token.id %>"
-                                                    data-token-name="<%= token.name %>"
-                                                    onclick="openDeleteTokenModal(this)"
-                                                >Supprimer</button>
+                                                    onclick="openJoinTokenModal(this)"
+                                                >Rejoindre</button>
+                                                <div class="stacked-actions__row">
+                                                    <button
+                                                        type="button"
+                                                        data-token-id="<%= token.id %>"
+                                                        data-token-name="<%= token.name %>"
+                                                        data-token-group="<%= token.group %>"
+                                                        data-token-value="<%= token.token %>"
+                                                        onclick="editToken(this)"
+                                                    >Modifier</button>
+                                                    <button
+                                                        type="button"
+                                                        class="danger"
+                                                        data-token-id="<%= token.id %>"
+                                                        data-token-name="<%= token.name %>"
+                                                        onclick="openDeleteTokenModal(this)"
+                                                    >Supprimer</button>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>
@@ -231,6 +240,43 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="joinTokenModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="joinTokenTitle">
+            <div class="modal-header">
+                <div>
+                    <div class="card-topline">Invitation</div>
+                    <h2 id="joinTokenTitle">Rejoindre un serveur</h2>
+                </div>
+                <button type="button" class="ghost-button" onclick="closeJoinTokenModal()" aria-label="Fermer">&times;</button>
+            </div>
+            <form id="joinTokenForm" class="form-grid">
+                <input type="hidden" id="joinTokenId" name="tokenId">
+                <div class="form-group span-full">
+                    <label for="joinTokenName">Token</label>
+                    <input type="text" id="joinTokenName" disabled>
+                </div>
+                <div class="form-group span-full">
+                    <label for="joinInvite">Lien d'invitation</label>
+                    <input type="text" id="joinInvite" name="invite" placeholder="https://discord.gg/..." required>
+                </div>
+                <div class="form-group span-full" id="joinCaptchaDetails" hidden>
+                    <label for="joinCaptchaInfo">Captcha hCaptcha</label>
+                    <textarea id="joinCaptchaInfo" rows="5" readonly></textarea>
+                </div>
+                <div class="form-group span-full" id="joinCaptchaField" hidden>
+                    <label for="joinCaptchaKey">Reponse captcha</label>
+                    <input type="text" id="joinCaptchaKey" name="captchaKey" placeholder="Collez la reponse hCaptcha">
+                </div>
+                <div class="modal-error span-full" id="joinTokenError" hidden></div>
+                <div class="alert alert-success span-full" id="joinTokenSuccess" hidden></div>
+                <div class="modal-actions span-full">
+                    <button type="button" class="secondary-button" onclick="closeJoinTokenModal()">Annuler</button>
+                    <button type="submit" id="joinTokenSubmit">Rejoindre</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <%- include('footer') %>
     <script src="/js/table-tools.js"></script>
 
@@ -240,6 +286,15 @@
         const editTokenError = document.getElementById('editTokenError');
         const deleteTokenModal = document.getElementById('deleteTokenModal');
         const deleteTokenError = document.getElementById('deleteTokenError');
+        const joinTokenModal = document.getElementById('joinTokenModal');
+        const joinTokenForm = document.getElementById('joinTokenForm');
+        const joinTokenError = document.getElementById('joinTokenError');
+        const joinTokenSuccess = document.getElementById('joinTokenSuccess');
+        const joinCaptchaDetails = document.getElementById('joinCaptchaDetails');
+        const joinCaptchaField = document.getElementById('joinCaptchaField');
+        const joinCaptchaInfo = document.getElementById('joinCaptchaInfo');
+        const joinCaptchaKey = document.getElementById('joinCaptchaKey');
+        const joinTokenSubmit = document.getElementById('joinTokenSubmit');
         const tokensTableBody = document.getElementById('tokensTableBody');
         const tokenOrderError = document.getElementById('tokenOrderError');
         let draggedTokenRow = null;
@@ -434,6 +489,12 @@
             }
         });
 
+        joinTokenModal.addEventListener('click', (e) => {
+            if (e.target === joinTokenModal) {
+                closeJoinTokenModal();
+            }
+        });
+
         document.addEventListener('keydown', (e) => {
             if (e.key !== 'Escape') {
                 return;
@@ -445,6 +506,114 @@
 
             if (!deleteTokenModal.hidden) {
                 closeDeleteTokenModal();
+            }
+
+            if (!joinTokenModal.hidden) {
+                closeJoinTokenModal();
+            }
+        });
+
+        function openJoinTokenModal(button) {
+            document.getElementById('joinTokenId').value = button.dataset.tokenId;
+            document.getElementById('joinTokenName').value = button.dataset.tokenName || 'Token selectionne';
+            joinTokenError.hidden = true;
+            joinTokenError.textContent = '';
+            joinTokenSuccess.hidden = true;
+            joinTokenSuccess.textContent = '';
+            joinCaptchaDetails.hidden = true;
+            joinCaptchaField.hidden = true;
+            joinCaptchaInfo.value = '';
+            joinCaptchaKey.value = '';
+            joinTokenSubmit.textContent = 'Rejoindre';
+            joinTokenModal.hidden = false;
+            document.getElementById('joinInvite').focus();
+        }
+
+        function closeJoinTokenModal() {
+            joinTokenModal.hidden = true;
+            joinTokenForm.reset();
+            joinTokenError.hidden = true;
+            joinTokenError.textContent = '';
+            joinTokenSuccess.hidden = true;
+            joinTokenSuccess.textContent = '';
+            joinCaptchaDetails.hidden = true;
+            joinCaptchaField.hidden = true;
+            joinCaptchaInfo.value = '';
+            joinCaptchaKey.value = '';
+            joinTokenSubmit.disabled = false;
+            joinTokenSubmit.textContent = 'Rejoindre';
+        }
+
+        function showJoinCaptcha(captcha) {
+            const lines = [
+                `Service: ${captcha.service || 'hcaptcha'}`,
+                `Sitekey: ${captcha.sitekey || 'non fourni'}`,
+                captcha.rqdata ? `rqdata: ${captcha.rqdata}` : null,
+                captcha.rqtoken ? `rqtoken: ${captcha.rqtoken}` : null,
+                captcha.userAgent ? `User-Agent: ${captcha.userAgent}` : null
+            ].filter(Boolean);
+
+            joinCaptchaInfo.value = lines.join('\n');
+            joinCaptchaDetails.hidden = false;
+            joinCaptchaField.hidden = false;
+            joinCaptchaKey.focus();
+            joinTokenSubmit.textContent = 'Valider le captcha';
+        }
+
+        joinTokenForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            joinTokenError.hidden = true;
+            joinTokenSuccess.hidden = true;
+            joinTokenSubmit.disabled = true;
+
+            const data = Object.fromEntries(new FormData(joinTokenForm));
+            if (!data.invite.trim()) {
+                joinTokenError.textContent = "Le lien d'invitation est obligatoire.";
+                joinTokenError.hidden = false;
+                joinTokenSubmit.disabled = false;
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/tokens/join', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tokenId: data.tokenId,
+                        invite: data.invite.trim(),
+                        captchaKey: data.captchaKey?.trim()
+                    })
+                });
+
+                if (!res.ok) {
+                    throw new Error('Route de jointure indisponible. Redemarrez la GUI.');
+                }
+
+                const result = await res.json();
+                if (result.success) {
+                    joinTokenSuccess.textContent = result.alreadyJoined
+                        ? `Token deja present sur ${result.name}.`
+                        : `Serveur rejoint: ${result.name}.`;
+                    joinTokenSuccess.hidden = false;
+                    joinTokenError.hidden = true;
+                    joinTokenSubmit.textContent = 'Rejoint';
+                    return;
+                }
+
+                if (result.requiresCaptcha) {
+                    joinTokenError.textContent = result.error || 'Captcha requis.';
+                    joinTokenError.hidden = false;
+                    showJoinCaptcha(result.captcha || {});
+                    return;
+                }
+
+                joinTokenError.textContent = 'Erreur: ' + result.error;
+                joinTokenError.hidden = false;
+            } catch (err) {
+                joinTokenError.textContent = err.message || 'Impossible de rejoindre le serveur.';
+                joinTokenError.hidden = false;
+            } finally {
+                joinTokenSubmit.disabled = false;
             }
         });
 
