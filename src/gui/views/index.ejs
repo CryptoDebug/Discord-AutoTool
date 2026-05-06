@@ -10,84 +10,135 @@
     <%- include('header') %>
     <%- include('nav') %>
 
-    <main class="container">
-        <section class="page-head">
-            <div>
+    <main class="container home-dashboard">
+        <section class="home-hero">
+            <div class="hero-grid" aria-hidden="true">
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+                <span></span><span></span><span></span><span></span>
+            </div>
+            <div class="hero-copy">
                 <div class="section-kicker">Vue d'ensemble</div>
-                <h2>État du système</h2>
-                <p>Les indicateurs essentiels sont regroupés ici pour comprendre rapidement la configuration actuelle.</p>
+                <h2>Centre de contrôle Discord</h2>
+                <p>Une console vivante pour surveiller AutoBump, AutoSender, les tokens et les alertes sans perdre le fil.</p>
+                <div class="hero-actions">
+                    <a class="button" href="/bump">Piloter AutoBump</a>
+                    <a class="button secondary-button" href="/sender">Ouvrir AutoSender</a>
+                </div>
+            </div>
+            <div class="hero-console" aria-label="État du système">
+                <div class="console-header">
+                    <span></span><span></span><span></span>
+                    <strong>runtime.signal</strong>
+                </div>
+                <div class="console-line">
+                    <span>global</span>
+                    <strong><%= isRunning ? 'ONLINE' : 'STANDBY' %></strong>
+                </div>
+                <div class="console-line">
+                    <span>tokens</span>
+                    <strong><%- (tokens && tokens.tokens.length) || 0 %></strong>
+                </div>
+                <div class="console-line">
+                    <span>bump targets</span>
+                    <strong><%- (bumpConfig && bumpConfig.servers.length) || 0 %></strong>
+                </div>
+                <div class="console-line">
+                    <span>sender jobs</span>
+                    <strong><%- (senderConfig && senderConfig.messages.length) || 0 %></strong>
+                </div>
+                <div class="console-scan"></div>
             </div>
         </section>
 
-        <section class="stats-grid">
-            <article class="stat">
+        <section class="home-stats">
+            <article class="home-stat-card" style="--meter: <%= Math.min(((tokens && tokens.tokens.length) || 0) * 12, 100) %>%;">
+                <span class="stat-icon">TK</span>
                 <span class="stat-value"><%- (tokens && tokens.tokens.length) || 0 %></span>
                 <span class="stat-label">Tokens</span>
+                <span class="stat-meter"></span>
             </article>
-            <article class="stat">
+            <article class="home-stat-card" style="--meter: <%= Math.min(((bumpConfig && bumpConfig.servers.length) || 0) * 14, 100) %>%;">
+                <span class="stat-icon">AB</span>
                 <span class="stat-value"><%- (bumpConfig && bumpConfig.servers.length) || 0 %></span>
                 <span class="stat-label">Serveurs bump</span>
+                <span class="stat-meter"></span>
             </article>
-            <article class="stat">
+            <article class="home-stat-card" style="--meter: <%= Math.min(((senderConfig && senderConfig.messages.length) || 0) * 18, 100) %>%;">
+                <span class="stat-icon">AS</span>
                 <span class="stat-value"><%- (senderConfig && senderConfig.messages.length) || 0 %></span>
                 <span class="stat-label">Messages</span>
+                <span class="stat-meter"></span>
             </article>
-            <article class="stat">
+            <article class="home-stat-card status-card <%= isRunning ? 'is-live' : '' %>" style="--meter: <%= isRunning ? '100%' : '34%' %>;">
+                <span class="stat-icon">SYS</span>
                 <span class="stat-value"><%- isRunning ? 'ON' : 'OFF' %></span>
                 <span class="stat-label">Statut global</span>
+                <span class="stat-meter"></span>
             </article>
         </section>
 
-        <section class="main-content">
-            <article class="card feature-card">
+        <section class="home-command-grid">
+            <article class="home-module module-bump">
+                <div class="module-glow" aria-hidden="true"></div>
                 <div class="card-topline">Bump automatique</div>
                 <h2>AutoBump</h2>
-                <p>Planifiez les bumps Disboard avec rotation de tokens, délais ajustés et logs centralisés.</p>
-                <ul class="feature-list">
-                    <li>Humanisation configurable</li>
-                    <li>Rotation multi-tokens</li>
-                    <li>Serveurs organisés par token</li>
-                    <li>Logs exploitables</li>
-                </ul>
+                <p>Rotation de tokens, délais humanisés et contrôle fin des serveurs prêts à bumper.</p>
+                <div class="module-tags">
+                    <span>Planning</span>
+                    <span>Serveurs</span>
+                    <span>Logs</span>
+                </div>
                 <a class="button" href="/bump">Configurer</a>
             </article>
 
-            <article class="card feature-card">
+            <article class="home-module module-sender">
+                <div class="module-glow" aria-hidden="true"></div>
                 <div class="card-topline">Messages récurrents</div>
                 <h2>AutoSender</h2>
-                <p>Préparez des messages récurrents pour plusieurs salons avec variables et délais personnalisables.</p>
-                <ul class="feature-list">
-                    <li>Messages récurrents</li>
-                    <li>Groupes de salons</li>
-                    <li>Groupes de tokens</li>
-                    <li>Gestion du rythme d'envoi</li>
-                </ul>
+                <p>Files de messages, groupes de salons et rythme d'envoi en secondes.</p>
+                <div class="module-tags">
+                    <span>Messages</span>
+                    <span>Salons</span>
+                    <span>Variables</span>
+                </div>
                 <a class="button" href="/sender">Configurer</a>
             </article>
 
-            <article class="card feature-card">
+            <article class="home-module module-access">
+                <div class="module-glow" aria-hidden="true"></div>
                 <div class="card-topline">Accès</div>
                 <h2>Tokens</h2>
-                <p>Centralisez vos tokens, nommez-les clairement et classez-les par groupes d'utilisation.</p>
-                <ul class="feature-list">
-                    <li>Ajout rapide</li>
-                    <li>Groupes personnalisables</li>
-                    <li>Tokens masqués dans l'interface</li>
-                </ul>
+                <p>Inventaire masqué, groupes, tri et gestion rapide des comptes.</p>
+                <div class="module-tags">
+                    <span>Groupes</span>
+                    <span>Recherche</span>
+                    <span>Tri</span>
+                </div>
                 <a class="button" href="/tokens">Gérer</a>
             </article>
 
-            <article class="card feature-card">
+            <article class="home-module module-alerts">
+                <div class="module-glow" aria-hidden="true"></div>
                 <div class="card-topline">Notifications</div>
                 <h2>Webhooks</h2>
-                <p>Recevez les événements importants dans Discord pour suivre les succès et les erreurs.</p>
-                <ul class="feature-list">
-                    <li>Notifications de succès</li>
-                    <li>Alertes d'erreur</li>
-                    <li>Configuration en une URL</li>
-                </ul>
+                <p>Succès, erreurs et signaux importants relayés vers Discord.</p>
+                <div class="module-tags">
+                    <span>Alertes</span>
+                    <span>Succès</span>
+                    <span>Erreurs</span>
+                </div>
                 <a class="button" href="/webhooks">Configurer</a>
             </article>
+        </section>
+
+        <section class="home-flow" aria-label="État opérationnel">
+            <div class="flow-track">
+                <span class="<%= ((tokens && tokens.tokens.length) || 0) > 0 ? 'active' : '' %>">Tokens prêts</span>
+                <span class="<%= ((bumpConfig && bumpConfig.servers.length) || 0) > 0 ? 'active' : '' %>">Bump configuré</span>
+                <span class="<%= ((senderConfig && senderConfig.messages.length) || 0) > 0 ? 'active' : '' %>">Messages prêts</span>
+                <span class="<%= isRunning ? 'active' : '' %>">Runtime actif</span>
+            </div>
         </section>
     </main>
 
