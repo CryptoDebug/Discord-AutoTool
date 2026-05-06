@@ -100,6 +100,11 @@ app.post('/api/bump/server/add', async (req, res) => {
             return;
         }
 
+        if (config.servers.some(server => server.serverId === serverId)) {
+            res.json({ success: false, error: 'Serveur déjà existant dans le système' });
+            return;
+        }
+
         const selectedToken = tokensConfig.tokens.find(token => token.id === tokenId);
 
         if (!selectedToken) {
@@ -130,12 +135,79 @@ app.post('/api/bump/server/add', async (req, res) => {
     }
 });
 
+app.post('/api/bump/server/update', async (req, res) => {
+    try {
+        const { serverConfigId, bumpChannelId, tokenId } = req.body;
+        const config = await configManager.read('bump');
+        const tokensConfig = await configManager.read('tokens');
+        const server = config.servers.find(item => item.id === serverConfigId);
+
+        if (!server) {
+            res.json({ success: false, error: 'Serveur introuvable' });
+            return;
+        }
+
+        if (!bumpChannelId || !tokenId) {
+            res.json({ success: false, error: 'Salon bump et token sont obligatoires' });
+            return;
+        }
+
+        const selectedToken = tokensConfig.tokens.find(token => token.id === tokenId);
+        if (!selectedToken) {
+            res.json({ success: false, error: 'Token introuvable' });
+            return;
+        }
+
+        const validation = await autoBumper.validateBumpTarget(selectedToken.token, server.serverId, bumpChannelId);
+        if (!validation.valid) {
+            res.json({ success: false, error: validation.error });
+            return;
+        }
+
+        server.bumpChannelId = bumpChannelId;
+        server.tokenId = tokenId;
+        server.name = validation.serverName;
+        server.updatedAt = new Date().toISOString();
+
+        await configManager.write('bump', config);
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
 app.post('/api/bump/server/remove', async (req, res) => {
     try {
         const { serverId } = req.body;
         const config = await configManager.read('bump');
         
         config.servers = config.servers.filter(s => s.id !== serverId);
+        await configManager.write('bump', config);
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/bump/server/reorder', async (req, res) => {
+    try {
+        const { serverIds } = req.body;
+        const config = await configManager.read('bump');
+
+        if (!Array.isArray(serverIds)) {
+            res.json({ success: false, error: 'Ordre invalide' });
+            return;
+        }
+
+        const serverById = new Map(config.servers.map(server => [server.id, server]));
+        const uniqueIds = new Set(serverIds);
+
+        if (uniqueIds.size !== config.servers.length || serverIds.some(serverId => !serverById.has(serverId))) {
+            res.json({ success: false, error: 'Liste de serveurs invalide' });
+            return;
+        }
+
+        config.servers = serverIds.map(serverId => serverById.get(serverId));
         await configManager.write('bump', config);
         res.json({ success: true });
     } catch (err) {

@@ -128,10 +128,12 @@
                     <span class="badge accent"><%= config.servers ? config.servers.length : 0 %> serveur(s)</span>
                 </div>
                 <% if (config.servers && config.servers.length > 0) { %>
+                    <div class="modal-error" id="serverOrderError" hidden></div>
                     <div class="table-wrap">
                         <table>
                             <thead>
                                 <tr>
+                                    <th>Ordre</th>
                                     <th>Nom</th>
                                     <th>ID serveur</th>
                                     <th>Salon bump</th>
@@ -140,11 +142,14 @@
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="bumpServersTableBody">
                                 <% config.servers.forEach(server => {
                                     const token = tokens.find(t => t.id === server.tokenId);
                                 %>
-                                    <tr>
+                                    <tr class="sortable-row server-row" draggable="true" data-server-config-id="<%= server.id %>">
+                                        <td>
+                                            <span class="drag-handle" title="Glisser pour déplacer">|||</span>
+                                        </td>
                                         <td><strong><%= server.name %></strong></td>
                                         <td><code><%= server.serverId %></code></td>
                                         <td><code><%= server.bumpChannelId %></code></td>
@@ -156,6 +161,15 @@
                                         </td>
                                         <td>
                                             <div class="actions">
+                                                <button
+                                                    type="button"
+                                                    data-server-id="<%= server.id %>"
+                                                    data-server-name="<%= server.name %>"
+                                                    data-server-discord-id="<%= server.serverId %>"
+                                                    data-bump-channel-id="<%= server.bumpChannelId %>"
+                                                    data-token-id="<%= server.tokenId %>"
+                                                    onclick="openEditServerModal(this)"
+                                                >Modifier</button>
                                                 <button
                                                     type="button"
                                                     class="danger"
@@ -198,14 +212,60 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="editServerModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editServerTitle">
+            <div class="modal-header">
+                <div>
+                    <div class="card-topline">Modification</div>
+                    <h2 id="editServerTitle">Modifier le serveur</h2>
+                </div>
+                <button type="button" class="ghost-button" onclick="closeEditServerModal()" aria-label="Fermer">&times;</button>
+            </div>
+            <form id="editServerForm" class="form-grid">
+                <input type="hidden" id="editServerConfigId" name="serverConfigId">
+                <div class="form-group span-full">
+                    <label for="editServerName">Serveur</label>
+                    <input type="text" id="editServerName" disabled>
+                </div>
+                <div class="form-group span-full">
+                    <label for="editServerDiscordId">ID serveur</label>
+                    <input type="text" id="editServerDiscordId" disabled>
+                </div>
+                <div class="form-group">
+                    <label for="editBumpChannelId">ID salon bump</label>
+                    <input type="text" id="editBumpChannelId" name="bumpChannelId" required>
+                </div>
+                <div class="form-group">
+                    <label for="editServerTokenId">Token à utiliser</label>
+                    <select id="editServerTokenId" name="tokenId" required>
+                        <% tokens.forEach(token => { %>
+                            <option value="<%= token.id %>"><%= token.name %> (<%= token.group %>)</option>
+                        <% }); %>
+                    </select>
+                </div>
+                <div class="modal-error span-full" id="editServerError" hidden></div>
+                <div class="modal-actions span-full">
+                    <button type="button" class="secondary-button" onclick="closeEditServerModal()">Annuler</button>
+                    <button type="submit">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <%- include('footer') %>
 
     <script>
         const settingsError = document.getElementById('settingsError');
         const settingsSuccess = document.getElementById('settingsSuccess');
         const serverError = document.getElementById('serverError');
+        const serverOrderError = document.getElementById('serverOrderError');
+        const bumpServersTableBody = document.getElementById('bumpServersTableBody');
+        const editServerModal = document.getElementById('editServerModal');
+        const editServerForm = document.getElementById('editServerForm');
+        const editServerError = document.getElementById('editServerError');
         const deleteServerModal = document.getElementById('deleteServerModal');
         const deleteServerError = document.getElementById('deleteServerError');
+        let draggedServerRow = null;
 
         function showInlineMessage(target, message) {
             target.textContent = message;
@@ -216,6 +276,10 @@
             settingsError.hidden = true;
             settingsSuccess.hidden = true;
             serverError.hidden = true;
+            if (serverOrderError) {
+                serverOrderError.hidden = true;
+            }
+            editServerError.hidden = true;
             deleteServerError.hidden = true;
         }
 
@@ -257,6 +321,132 @@
             }
         });
 
+        function getDragAfterServerRow(container, y) {
+            const rows = [...container.querySelectorAll('.server-row:not(.dragging)')];
+
+            return rows.reduce((closest, row) => {
+                const box = row.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset, row };
+                }
+
+                return closest;
+            }, { offset: Number.NEGATIVE_INFINITY, row: null }).row;
+        }
+
+        async function saveServerOrder() {
+            if (!bumpServersTableBody) {
+                return;
+            }
+
+            const serverIds = [...bumpServersTableBody.querySelectorAll('.server-row')]
+                .map(row => row.dataset.serverConfigId);
+
+            try {
+                const res = await fetch('/api/bump/server/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ serverIds })
+                });
+                const result = await res.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || "Impossible d'enregistrer l'ordre.");
+                }
+
+                if (serverOrderError) {
+                    serverOrderError.hidden = true;
+                    serverOrderError.textContent = '';
+                }
+            } catch (err) {
+                if (serverOrderError) {
+                    serverOrderError.textContent = err.message || "Impossible d'enregistrer l'ordre.";
+                    serverOrderError.hidden = false;
+                }
+            }
+        }
+
+        if (bumpServersTableBody) {
+            bumpServersTableBody.addEventListener('dragstart', (e) => {
+                const row = e.target.closest('.server-row');
+                if (!row) {
+                    return;
+                }
+
+                draggedServerRow = row;
+                row.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', row.dataset.serverConfigId);
+            });
+
+            bumpServersTableBody.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterRow = getDragAfterServerRow(bumpServersTableBody, e.clientY);
+
+                if (!draggedServerRow) {
+                    return;
+                }
+
+                if (afterRow) {
+                    bumpServersTableBody.insertBefore(draggedServerRow, afterRow);
+                } else {
+                    bumpServersTableBody.appendChild(draggedServerRow);
+                }
+            });
+
+            bumpServersTableBody.addEventListener('dragend', async () => {
+                if (!draggedServerRow) {
+                    return;
+                }
+
+                draggedServerRow.classList.remove('dragging');
+                draggedServerRow = null;
+                await saveServerOrder();
+            });
+        }
+
+        function openEditServerModal(button) {
+            document.getElementById('editServerConfigId').value = button.dataset.serverId;
+            document.getElementById('editServerName').value = button.dataset.serverName || '';
+            document.getElementById('editServerDiscordId').value = button.dataset.serverDiscordId || '';
+            document.getElementById('editBumpChannelId').value = button.dataset.bumpChannelId || '';
+            document.getElementById('editServerTokenId').value = button.dataset.tokenId || '';
+            editServerError.hidden = true;
+            editServerError.textContent = '';
+            editServerModal.hidden = false;
+            document.getElementById('editBumpChannelId').focus();
+        }
+
+        function closeEditServerModal() {
+            editServerModal.hidden = true;
+            editServerForm.reset();
+            editServerError.hidden = true;
+            editServerError.textContent = '';
+        }
+
+        editServerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            editServerError.hidden = true;
+            editServerError.textContent = '';
+
+            const data = Object.fromEntries(new FormData(editServerForm));
+            const res = await fetch('/api/bump/server/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                location.reload();
+            } else {
+                editServerError.textContent = 'Erreur: ' + result.error;
+                editServerError.hidden = false;
+            }
+        });
+
         function openDeleteServerModal(button) {
             document.getElementById('deleteServerId').value = button.dataset.serverId;
             document.getElementById('deleteServerName').textContent = button.dataset.serverName || 'ce serveur';
@@ -288,6 +478,12 @@
             }
         }
 
+        editServerModal.addEventListener('click', (e) => {
+            if (e.target === editServerModal) {
+                closeEditServerModal();
+            }
+        });
+
         deleteServerModal.addEventListener('click', (e) => {
             if (e.target === deleteServerModal) {
                 closeDeleteServerModal();
@@ -295,7 +491,15 @@
         });
 
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !deleteServerModal.hidden) {
+            if (e.key !== 'Escape') {
+                return;
+            }
+
+            if (!editServerModal.hidden) {
+                closeEditServerModal();
+            }
+
+            if (!deleteServerModal.hidden) {
                 closeDeleteServerModal();
             }
         });

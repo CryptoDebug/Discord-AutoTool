@@ -609,15 +609,18 @@ tr:hover td {
     background: rgba(255, 255, 255, 0.035);
 }
 
-.token-row {
+.token-row,
+.sortable-row {
     cursor: grab;
 }
 
-.token-row.dragging {
+.token-row.dragging,
+.sortable-row.dragging {
     opacity: 0.46;
 }
 
-.token-row.dragging td {
+.token-row.dragging td,
+.sortable-row.dragging td {
     background: rgba(94, 234, 212, 0.08);
 }
 
