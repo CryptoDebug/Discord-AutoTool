@@ -93,13 +93,32 @@ app.post('/api/bump/server/add', async (req, res) => {
     try {
         const { serverId, bumpChannelId, tokenId, enabled } = req.body;
         const config = await configManager.read('bump');
+        const tokensConfig = await configManager.read('tokens');
+
+        if (!serverId || !bumpChannelId || !tokenId) {
+            res.json({ success: false, error: 'Serveur, salon bump et token sont obligatoires' });
+            return;
+        }
+
+        const selectedToken = tokensConfig.tokens.find(token => token.id === tokenId);
+
+        if (!selectedToken) {
+            res.json({ success: false, error: 'Token introuvable' });
+            return;
+        }
+
+        const validation = await autoBumper.validateBumpTarget(selectedToken.token, serverId, bumpChannelId);
+        if (!validation.valid) {
+            res.json({ success: false, error: validation.error });
+            return;
+        }
         
         config.servers.push({
             id: Date.now().toString(),
             serverId,
             bumpChannelId,
             tokenId,
-            name: req.body.name || `Server-${serverId}`,
+            name: validation.serverName,
             enabled: enabled !== 'false',
             createdAt: new Date().toISOString()
         });

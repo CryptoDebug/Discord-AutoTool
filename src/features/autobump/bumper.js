@@ -1,5 +1,6 @@
 ﻿import { Client } from 'discord.js-selfbot-v13';
 import { ConfigManager } from '../../config/manager.js';
+import { Permissions } from 'discord.js-selfbot-v13';
 import { Logger } from '../logging.js';
 import { applySelfbotCompatPatch } from '../selfbot-compat.js';
 
@@ -307,6 +308,76 @@ export class AutoBumper {
 
         } catch (err) {
             return { valid: false, error: err.message };
+        }
+    }
+
+    async validateBumpTarget(token, serverId, channelId) {
+        const client = new Client();
+
+        try {
+            await client.login(token);
+            await this.waitForReady(client);
+
+            const guild = await client.guilds.fetch(serverId).catch(() => null);
+            if (!guild) {
+                return {
+                    valid: false,
+                    error: "Serveur introuvable avec ce token. Vérifiez l'ID serveur ou le token sélectionné."
+                };
+            }
+
+            const channel = await client.channels.fetch(channelId).catch(() => null);
+            if (!channel) {
+                return {
+                    valid: false,
+                    error: "Salon bump introuvable. Vérifiez l'ID du salon."
+                };
+            }
+
+            if (!channel.guild || channel.guild.id !== guild.id) {
+                return {
+                    valid: false,
+                    error: "Ce salon n'appartient pas au serveur indiqué."
+                };
+            }
+
+            if (!channel.isText()) {
+                return {
+                    valid: false,
+                    error: 'Le salon bump doit être un salon textuel.'
+                };
+            }
+
+            const permissions = channel.permissionsFor(client.user);
+            if (!permissions?.has(Permissions.FLAGS.VIEW_CHANNEL, false)) {
+                return {
+                    valid: false,
+                    error: 'Le salon bump est inaccessible avec ce token.'
+                };
+            }
+
+            if (!permissions?.has(Permissions.FLAGS.SEND_MESSAGES, false)) {
+                return {
+                    valid: false,
+                    error: 'Le salon bump est en lecture seule pour ce token.'
+                };
+            }
+
+            return {
+                valid: true,
+                serverName: guild.name
+            };
+        } catch (err) {
+            return {
+                valid: false,
+                error: err.message
+            };
+        } finally {
+            try {
+                await client.destroy();
+            } catch {
+                // Ignore cleanup errors after validation.
+            }
         }
     }
 
