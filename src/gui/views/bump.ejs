@@ -186,7 +186,7 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <div class="actions">
+                                            <div class="actions stacked-actions">
                                                 <button
                                                     type="button"
                                                     class="<%= server.enabled ? 'secondary-button' : 'success' %>"
@@ -194,22 +194,24 @@
                                                     data-enabled="<%= server.enabled ? 'false' : 'true' %>"
                                                     onclick="toggleServer(this)"
                                                 ><%= server.enabled ? 'Désactiver' : 'Activer' %></button>
-                                                <button
-                                                    type="button"
-                                                    data-server-id="<%= server.id %>"
-                                                    data-server-name="<%= server.name %>"
-                                                    data-server-discord-id="<%= server.serverId %>"
-                                                    data-bump-channel-id="<%= server.bumpChannelId %>"
-                                                    data-token-id="<%= server.tokenId %>"
-                                                    onclick="openEditServerModal(this)"
-                                                >Modifier</button>
-                                                <button
-                                                    type="button"
-                                                    class="danger"
-                                                    data-server-id="<%= server.id %>"
-                                                    data-server-name="<%= server.name %>"
-                                                    onclick="openDeleteServerModal(this)"
-                                                >Supprimer</button>
+                                                <div class="stacked-actions__row">
+                                                    <button
+                                                        type="button"
+                                                        data-server-id="<%= server.id %>"
+                                                        data-server-name="<%= server.name %>"
+                                                        data-server-discord-id="<%= server.serverId %>"
+                                                        data-bump-channel-id="<%= server.bumpChannelId %>"
+                                                        data-token-id="<%= server.tokenId %>"
+                                                        onclick="openEditServerModal(this)"
+                                                    >Modifier</button>
+                                                    <button
+                                                        type="button"
+                                                        class="danger"
+                                                        data-server-id="<%= server.id %>"
+                                                        data-server-name="<%= server.name %>"
+                                                        onclick="openDeleteServerModal(this)"
+                                                    >Supprimer</button>
+                                                </div>
                                             </div>
                                         </td>
                                     </tr>

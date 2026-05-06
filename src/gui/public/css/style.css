@@ -539,6 +539,18 @@ button.success,
     gap: 8px;
 }
 
+.stacked-actions {
+    flex-direction: column;
+    align-items: center;
+}
+
+.stacked-actions__row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+}
+
 .actions button,
 .chip button {
     width: auto;
