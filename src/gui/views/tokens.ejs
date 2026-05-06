@@ -88,6 +88,21 @@
                 </div>
                 <% if (tokens && tokens.length > 0) { %>
                     <div class="modal-error" id="tokenOrderError" hidden></div>
+                    <div class="form-grid compact-form table-controls">
+                        <div class="form-group">
+                            <label for="tokenTableSearch">Recherche</label>
+                            <input type="search" id="tokenTableSearch" placeholder="Nom ou token">
+                        </div>
+                        <div class="form-group">
+                            <label for="tokenTableSort">Tri</label>
+                            <select id="tokenTableSort">
+                                <option value="manual:asc:number">Ordre manuel</option>
+                                <option value="group:asc:text">Groupe A-Z</option>
+                                <option value="created:desc:number">Création récente</option>
+                                <option value="created:asc:number">Création ancienne</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="table-wrap">
                         <table class="token-table">
                             <thead>
@@ -102,7 +117,14 @@
                             </thead>
                             <tbody id="tokensTableBody">
                                 <% tokens.forEach(token => { %>
-                                    <tr class="token-row" draggable="true" data-token-id="<%= token.id %>">
+                                    <tr
+                                        class="token-row"
+                                        draggable="true"
+                                        data-token-id="<%= token.id %>"
+                                        data-search="<%= token.name %> <%= token.token %>"
+                                        data-group="<%= token.group %>"
+                                        data-created="<%= new Date(token.createdAt).getTime() || 0 %>"
+                                    >
                                         <td>
                                             <span class="drag-handle" title="Glisser pour deplacer">|||</span>
                                         </td>
@@ -210,6 +232,7 @@
     </div>
 
     <%- include('footer') %>
+    <script src="/js/table-tools.js"></script>
 
     <script>
         const editTokenModal = document.getElementById('editTokenModal');
@@ -220,6 +243,13 @@
         const tokensTableBody = document.getElementById('tokensTableBody');
         const tokenOrderError = document.getElementById('tokenOrderError');
         let draggedTokenRow = null;
+
+        initTableTools({
+            tbody: '#tokensTableBody',
+            rowSelector: '.token-row',
+            search: '#tokenTableSearch',
+            sort: '#tokenTableSort'
+        });
 
         document.getElementById('addTokenForm').addEventListener('submit', async (e) => {
             e.preventDefault();

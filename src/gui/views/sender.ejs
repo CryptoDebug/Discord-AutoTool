@@ -1,4 +1,4 @@
-�<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -125,6 +125,24 @@
                     <span class="badge accent"><%= config.messages ? config.messages.length : 0 %> message(s)</span>
                 </div>
                 <% if (config.messages && config.messages.length > 0) { %>
+                    <div class="form-grid compact-form table-controls">
+                        <div class="form-group">
+                            <label for="senderTableSearch">Recherche</label>
+                            <input type="search" id="senderTableSearch" placeholder="Message, tokens ou salons">
+                        </div>
+                        <div class="form-group">
+                            <label for="senderTableSort">Tri</label>
+                            <select id="senderTableSort">
+                                <option value="manual:asc:number">Ordre manuel</option>
+                                <option value="token:asc:text">Tokens A-Z</option>
+                                <option value="channel:asc:text">Salons A-Z</option>
+                                <option value="delay:asc:number">Délai croissant</option>
+                                <option value="delay:desc:number">Délai décroissant</option>
+                                <option value="enabled:desc:number">Actifs d'abord</option>
+                                <option value="enabled:asc:number">Inactifs d'abord</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="table-wrap">
                         <table>
                             <thead>
@@ -133,13 +151,20 @@
                                     <th>Tokens</th>
                                     <th>Salons</th>
                                     <th>Délai</th>
-                                    <th>�0tat</th>
+                                    <th>État</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="senderMessagesTableBody">
                                 <% config.messages.forEach(msg => { %>
-                                    <tr>
+                                    <tr
+                                        class="message-row"
+                                        data-search="<%= msg.content %> <%= msg.useGlobalTokens ? 'Tous les tokens' : (msg.tokenGroupId || 'Aucun groupe') %> <%= msg.useGlobalChannels ? 'Tous les salons' : (msg.channelGroupId || 'Aucun groupe') %>"
+                                        data-token="<%= msg.useGlobalTokens ? 'Tous les tokens' : (msg.tokenGroupId || 'Aucun groupe') %>"
+                                        data-channel="<%= msg.useGlobalChannels ? 'Tous les salons' : (msg.channelGroupId || 'Aucun groupe') %>"
+                                        data-delay="<%= msg.customDelay || config.settings?.delayBetweenMessages || 0 %>"
+                                        data-enabled="<%= msg.enabled ? 1 : 0 %>"
+                                    >
                                         <td><strong><%= msg.content.substring(0, 70) %><%= msg.content.length > 70 ? '...' : '' %></strong></td>
                                         <td><%= msg.useGlobalTokens ? 'Tous les tokens' : (msg.tokenGroupId || 'Aucun groupe') %></td>
                                         <td><%= msg.useGlobalChannels ? 'Tous les salons' : (msg.channelGroupId || 'Aucun groupe') %></td>
@@ -194,11 +219,19 @@
     </div>
 
     <%- include('footer') %>
+    <script src="/js/table-tools.js"></script>
 
     <script>
         const senderError = document.getElementById('senderError');
         const deleteMessageModal = document.getElementById('deleteMessageModal');
         const deleteMessageError = document.getElementById('deleteMessageError');
+
+        initTableTools({
+            tbody: '#senderMessagesTableBody',
+            rowSelector: '.message-row',
+            search: '#senderTableSearch',
+            sort: '#senderTableSort'
+        });
 
         function setSenderError(message) {
             senderError.textContent = message;

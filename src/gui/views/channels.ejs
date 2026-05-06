@@ -93,6 +93,22 @@
                 </div>
                 <% if (channels && channels.length > 0) { %>
                     <div class="modal-error" id="channelOrderError" hidden></div>
+                    <div class="form-grid compact-form table-controls">
+                        <div class="form-group">
+                            <label for="channelTableSearch">Recherche</label>
+                            <input type="search" id="channelTableSearch" placeholder="Nom ou ID salon">
+                        </div>
+                        <div class="form-group">
+                            <label for="channelTableSort">Tri</label>
+                            <select id="channelTableSort">
+                                <option value="manual:asc:number">Ordre manuel</option>
+                                <option value="group:asc:text">Groupe A-Z</option>
+                                <option value="token:asc:text">Token A-Z</option>
+                                <option value="created:desc:number">Création récente</option>
+                                <option value="created:asc:number">Création ancienne</option>
+                            </select>
+                        </div>
+                    </div>
                     <div class="table-wrap">
                         <table class="token-table">
                             <thead>
@@ -110,7 +126,15 @@
                                 <% channels.forEach(channel => {
                                     const token = tokens.find(t => t.id === channel.tokenId);
                                 %>
-                                    <tr class="sortable-row" draggable="true" data-channel-config-id="<%= channel.id %>">
+                                    <tr
+                                        class="sortable-row"
+                                        draggable="true"
+                                        data-channel-config-id="<%= channel.id %>"
+                                        data-search="<%= channel.name %> <%= channel.channelId %>"
+                                        data-group="<%= channel.group %>"
+                                        data-token="<%= token ? token.name : '' %>"
+                                        data-created="<%= new Date(channel.createdAt).getTime() || 0 %>"
+                                    >
                                         <td>
                                             <span class="drag-handle" title="Glisser pour deplacer">|||</span>
                                         </td>
@@ -214,6 +238,7 @@
     </div>
 
     <%- include('footer') %>
+    <script src="/js/table-tools.js"></script>
 
     <script>
         const editChannelModal = document.getElementById('editChannelModal');
@@ -224,6 +249,13 @@
         const channelsTableBody = document.getElementById('channelsTableBody');
         const channelOrderError = document.getElementById('channelOrderError');
         let draggedChannelRow = null;
+
+        initTableTools({
+            tbody: '#channelsTableBody',
+            rowSelector: '.sortable-row',
+            search: '#channelTableSearch',
+            sort: '#channelTableSort'
+        });
 
         document.getElementById('addChannelForm').addEventListener('submit', async (e) => {
             e.preventDefault();

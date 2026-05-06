@@ -567,6 +567,11 @@ button.success,
     min-width: 0;
 }
 
+.table-controls {
+    margin-bottom: 14px;
+    align-items: end;
+}
+
 .table-wrap {
     width: 100%;
     overflow-x: auto;
