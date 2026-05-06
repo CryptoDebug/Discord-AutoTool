@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Salons - Discord AutoTool</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <%- include('header') %>
+    <%- include('nav') %>
+
+    <main class="container">
+        <section class="page-head">
+            <div>
+                <div class="section-kicker">Salons</div>
+                <h2>Cibles et groupes</h2>
+                <p>Organisez les salons Discord par usage pour les reutiliser dans AutoSender.</p>
+            </div>
+            <span class="badge accent"><%= channels ? channels.length : 0 %> salon(s)</span>
+        </section>
+
+        <section class="main-content">
+            <article class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-topline">Groupes</div>
+                        <h2>Groupes de salons</h2>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="newGroupName">Ajouter un groupe</label>
+                    <div class="inline-control">
+                        <input type="text" id="newGroupName" placeholder="Nom du groupe">
+                        <button onclick="createChannelGroup()">Creer</button>
+                    </div>
+                </div>
+
+                <% if (groups.channelGroups && groups.channelGroups.length > 0) { %>
+                    <div class="chip-grid">
+                        <% groups.channelGroups.forEach(group => { %>
+                            <div class="chip">
+                                <span class="badge accent"><%= group %></span>
+                                <button class="danger" onclick="deleteChannelGroup('<%= group %>')">Supprimer</button>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="empty-state">Aucun groupe personnalise.</div>
+                <% } %>
+            </article>
+
+            <article class="card">
+                <div class="card-header">
+                    <div>
+                        <div class="card-topline">Nouveau salon</div>
+                        <h2>Ajouter un salon</h2>
+                    </div>
+                </div>
+                <form id="addChannelForm" class="form-grid">
+                    <div class="form-group span-full">
+                        <label for="channelId">ID du salon Discord</label>
+                        <input type="text" id="channelId" name="channelId" placeholder="123456789012345678" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="channelName">Nom</label>
+                        <input type="text" id="channelName" name="name" placeholder="annonces">
+                    </div>
+                    <div class="form-group">
+                        <label for="channelGroup">Groupe</label>
+                        <select id="channelGroup" name="group">
+                            <option value="default">default</option>
+                            <% if (groups.channelGroups) { groups.channelGroups.forEach(group => { %>
+                                <option value="<%= group %>"><%= group %></option>
+                            <% }); } %>
+                        </select>
+                    </div>
+                    <button type="submit">Ajouter</button>
+                </form>
+            </article>
+
+            <article class="card span-full">
+                <div class="card-header">
+                    <div>
+                        <div class="card-topline">Inventaire</div>
+                        <h2>Salons configures</h2>
+                    </div>
+                </div>
+                <% if (channels && channels.length > 0) { %>
+                    <div class="modal-error" id="channelOrderError" hidden></div>
+                    <div class="table-wrap">
+                        <table class="token-table">
+                            <thead>
+                                <tr>
+                                    <th>Ordre</th>
+                                    <th>Nom</th>
+                                    <th>Groupe</th>
+                                    <th>ID salon</th>
+                                    <th>Cree le</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="channelsTableBody">
+                                <% channels.forEach(channel => { %>
+                                    <tr class="sortable-row" draggable="true" data-channel-config-id="<%= channel.id %>">
+                                        <td>
+                                            <span class="drag-handle" title="Glisser pour deplacer">|||</span>
+                                        </td>
+                                        <td><strong><%= channel.name %></strong></td>
+                                        <td><span class="badge accent"><%= channel.group %></span></td>
+                                        <td><code><%= channel.channelId %></code></td>
+                                        <td><%= new Date(channel.createdAt).toLocaleDateString('fr-FR') %></td>
+                                        <td>
+                                            <div class="actions">
+                                                <button
+                                                    type="button"
+                                                    data-channel-config-id="<%= channel.id %>"
+                                                    data-channel-name="<%= channel.name %>"
+                                                    data-channel-group="<%= channel.group %>"
+                                                    data-channel-id="<%= channel.channelId %>"
+                                                    onclick="editChannel(this)"
+                                                >Modifier</button>
+                                                <button
+                                                    type="button"
+                                                    class="danger"
+                                                    data-channel-config-id="<%= channel.id %>"
+                                                    data-channel-name="<%= channel.name %>"
+                                                    onclick="openDeleteChannelModal(this)"
+                                                >Supprimer</button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="empty-state">Aucun salon configure.</div>
+                <% } %>
+            </article>
+        </section>
+    </main>
+
+    <div class="modal-overlay" id="editChannelModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="editChannelTitle">
+            <div class="modal-header">
+                <div>
+                    <div class="card-topline">Modification</div>
+                    <h2 id="editChannelTitle">Modifier le salon</h2>
+                </div>
+                <button type="button" class="ghost-button" onclick="closeEditChannelModal()" aria-label="Fermer">&times;</button>
+            </div>
+            <form id="editChannelForm" class="form-grid">
+                <input type="hidden" id="editChannelConfigId" name="channelConfigId">
+                <div class="form-group">
+                    <label for="editChannelName">Nom</label>
+                    <input type="text" id="editChannelName" name="name" placeholder="annonces">
+                </div>
+                <div class="form-group">
+                    <label for="editChannelGroup">Groupe</label>
+                    <select id="editChannelGroup" name="group">
+                        <option value="default">Aucun groupe</option>
+                        <% if (groups.channelGroups) { groups.channelGroups.forEach(group => { %>
+                            <option value="<%= group %>"><%= group %></option>
+                        <% }); } %>
+                    </select>
+                </div>
+                <div class="form-group span-full">
+                    <label for="editChannelId">ID du salon Discord</label>
+                    <input type="text" id="editChannelId" name="channelId" required>
+                </div>
+                <div class="modal-error span-full" id="editChannelError" hidden></div>
+                <div class="modal-actions span-full">
+                    <button type="button" class="secondary-button" onclick="closeEditChannelModal()">Annuler</button>
+                    <button type="submit">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="deleteChannelModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="deleteChannelTitle">
+            <div class="modal-header">
+                <div>
+                    <div class="card-topline">Suppression</div>
+                    <h2 id="deleteChannelTitle">Supprimer le salon</h2>
+                </div>
+                <button type="button" class="ghost-button" onclick="closeDeleteChannelModal()" aria-label="Fermer">&times;</button>
+            </div>
+            <p class="modal-copy">
+                Vous allez supprimer <strong id="deleteChannelName">ce salon</strong> d'AutoSender.
+            </p>
+            <input type="hidden" id="deleteChannelConfigId">
+            <div class="modal-error" id="deleteChannelError" hidden></div>
+            <div class="modal-actions">
+                <button type="button" class="secondary-button" onclick="closeDeleteChannelModal()">Annuler</button>
+                <button type="button" class="danger" onclick="confirmDeleteChannel()">Supprimer</button>
+            </div>
+        </div>
+    </div>
+
+    <%- include('footer') %>
+
+    <script>
+        const editChannelModal = document.getElementById('editChannelModal');
+        const editChannelForm = document.getElementById('editChannelForm');
+        const editChannelError = document.getElementById('editChannelError');
+        const deleteChannelModal = document.getElementById('deleteChannelModal');
+        const deleteChannelError = document.getElementById('deleteChannelError');
+        const channelsTableBody = document.getElementById('channelsTableBody');
+        const channelOrderError = document.getElementById('channelOrderError');
+        let draggedChannelRow = null;
+
+        document.getElementById('addChannelForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = new FormData(e.target);
+            const res = await fetch('/api/channels/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(Object.fromEntries(data))
+            });
+            const result = await res.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + result.error);
+            }
+        });
+
+        function getDragAfterRow(container, y) {
+            const rows = [...container.querySelectorAll('.sortable-row:not(.dragging)')];
+
+            return rows.reduce((closest, row) => {
+                const box = row.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset, row };
+                }
+
+                return closest;
+            }, { offset: Number.NEGATIVE_INFINITY, row: null }).row;
+        }
+
+        async function saveChannelOrder() {
+            if (!channelsTableBody) {
+                return;
+            }
+
+            const channelConfigIds = [...channelsTableBody.querySelectorAll('.sortable-row')]
+                .map(row => row.dataset.channelConfigId);
+
+            try {
+                const res = await fetch('/api/channels/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ channelConfigIds })
+                });
+
+                const result = await res.json();
+                if (!result.success) {
+                    throw new Error(result.error || "Impossible d'enregistrer l'ordre.");
+                }
+
+                channelOrderError.hidden = true;
+                channelOrderError.textContent = '';
+            } catch (err) {
+                channelOrderError.textContent = err.message || "Impossible d'enregistrer l'ordre.";
+                channelOrderError.hidden = false;
+            }
+        }
+
+        if (channelsTableBody) {
+            channelsTableBody.addEventListener('dragstart', (e) => {
+                const row = e.target.closest('.sortable-row');
+                if (!row) {
+                    return;
+                }
+
+                draggedChannelRow = row;
+                row.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', row.dataset.channelConfigId);
+            });
+
+            channelsTableBody.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                const afterRow = getDragAfterRow(channelsTableBody, e.clientY);
+
+                if (!draggedChannelRow) {
+                    return;
+                }
+
+                if (afterRow) {
+                    channelsTableBody.insertBefore(draggedChannelRow, afterRow);
+                } else {
+                    channelsTableBody.appendChild(draggedChannelRow);
+                }
+            });
+
+            channelsTableBody.addEventListener('dragend', async () => {
+                if (!draggedChannelRow) {
+                    return;
+                }
+
+                draggedChannelRow.classList.remove('dragging');
+                draggedChannelRow = null;
+                await saveChannelOrder();
+            });
+        }
+
+        function editChannel(button) {
+            document.getElementById('editChannelConfigId').value = button.dataset.channelConfigId;
+            document.getElementById('editChannelName').value = button.dataset.channelName || '';
+            document.getElementById('editChannelGroup').value = button.dataset.channelGroup || 'default';
+            document.getElementById('editChannelId').value = button.dataset.channelId || '';
+            editChannelError.hidden = true;
+            editChannelError.textContent = '';
+            editChannelModal.hidden = false;
+            document.getElementById('editChannelName').focus();
+        }
+
+        function closeEditChannelModal() {
+            editChannelModal.hidden = true;
+            editChannelForm.reset();
+            editChannelError.hidden = true;
+            editChannelError.textContent = '';
+        }
+
+        editChannelForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(editChannelForm));
+
+            if (!data.channelId.trim()) {
+                editChannelError.textContent = "L'ID du salon ne peut pas etre vide.";
+                editChannelError.hidden = false;
+                return;
+            }
+
+            const res = await fetch('/api/channels/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    channelConfigId: data.channelConfigId,
+                    name: data.name.trim(),
+                    group: data.group,
+                    channelId: data.channelId.trim()
+                })
+            });
+            const result = await res.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                editChannelError.textContent = 'Erreur: ' + result.error;
+                editChannelError.hidden = false;
+            }
+        });
+
+        editChannelModal.addEventListener('click', (e) => {
+            if (e.target === editChannelModal) {
+                closeEditChannelModal();
+            }
+        });
+
+        deleteChannelModal.addEventListener('click', (e) => {
+            if (e.target === deleteChannelModal) {
+                closeDeleteChannelModal();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') {
+                return;
+            }
+
+            if (!editChannelModal.hidden) {
+                closeEditChannelModal();
+            }
+
+            if (!deleteChannelModal.hidden) {
+                closeDeleteChannelModal();
+            }
+        });
+
+        function openDeleteChannelModal(button) {
+            document.getElementById('deleteChannelConfigId').value = button.dataset.channelConfigId;
+            document.getElementById('deleteChannelName').textContent = button.dataset.channelName || 'ce salon';
+            deleteChannelError.hidden = true;
+            deleteChannelError.textContent = '';
+            deleteChannelModal.hidden = false;
+        }
+
+        function closeDeleteChannelModal() {
+            deleteChannelModal.hidden = true;
+            document.getElementById('deleteChannelConfigId').value = '';
+            deleteChannelError.hidden = true;
+            deleteChannelError.textContent = '';
+        }
+
+        async function confirmDeleteChannel() {
+            const channelConfigId = document.getElementById('deleteChannelConfigId').value;
+
+            const res = await fetch('/api/channels/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ channelConfigId })
+            });
+            const result = await res.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                deleteChannelError.textContent = 'Erreur: ' + result.error;
+                deleteChannelError.hidden = false;
+            }
+        }
+
+        async function createChannelGroup() {
+            const groupName = document.getElementById('newGroupName').value;
+            if (!groupName) {
+                alert('Entrez un nom de groupe');
+                return;
+            }
+            const res = await fetch('/api/channels/group/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ groupName })
+            });
+            const result = await res.json();
+            if (result.success) {
+                location.reload();
+            } else {
+                alert('Erreur: ' + result.error);
+            }
+        }
+
+        async function deleteChannelGroup(groupName) {
+            if (confirm('Etes-vous sur ? Cela supprimera tous les salons du groupe.')) {
+                const res = await fetch('/api/channels/group/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ groupName })
+                });
+                const result = await res.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert('Erreur: ' + result.error);
+                }
+            }
+        }
+    </script>
+</body>
+</html>
