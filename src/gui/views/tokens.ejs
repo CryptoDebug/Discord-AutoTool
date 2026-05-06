@@ -269,21 +269,31 @@
                 return;
             }
 
-            const res = await fetch('/api/tokens/update', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    tokenId: data.tokenId,
-                    name: data.name.trim(),
-                    group: data.group,
-                    token: data.token.trim()
-                })
-            });
-            const result = await res.json();
-            if (result.success) {
-                location.reload();
-            } else {
-                editTokenError.textContent = 'Erreur: ' + result.error;
+            try {
+                const res = await fetch('/api/tokens/update', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tokenId: data.tokenId,
+                        name: data.name.trim(),
+                        group: data.group,
+                        token: data.token.trim()
+                    })
+                });
+
+                if (!res.ok) {
+                    throw new Error('Route de modification indisponible. Redemarrez la GUI.');
+                }
+
+                const result = await res.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    editTokenError.textContent = 'Erreur: ' + result.error;
+                    editTokenError.hidden = false;
+                }
+            } catch (err) {
+                editTokenError.textContent = err.message || 'Impossible de modifier le token.';
                 editTokenError.hidden = false;
             }
         });
