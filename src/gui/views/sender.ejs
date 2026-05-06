@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+�<!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -14,8 +14,8 @@
         <section class="page-head">
             <div>
                 <div class="section-kicker">AutoSender</div>
-                <h2>Messages rÃ©currents</h2>
-                <p>PrÃ©parez vos messages, choisissez les tokens Ã  utiliser et pilotez l'envoi automatique.</p>
+                <h2>Messages récurrents</h2>
+                <p>Préparez vos messages, choisissez les tokens à utiliser et pilotez l'envoi automatique.</p>
             </div>
             <span class="badge <%= config.enabled ? 'success' : 'danger' %>"><%= config.enabled ? 'Actif' : 'Inactif' %></span>
         </section>
@@ -35,20 +35,20 @@
             </div>
             <div class="stat">
                 <div class="stat-value"><%= config.settings?.delayBetweenMessages || 3.5 %></div>
-                <div class="stat-label">dÃ©lai par dÃ©faut (s)</div>
+                <div class="stat-label">délai par défaut (s)</div>
             </div>
         </section>
 
         <section class="main-content">
             <article class="card span-full control-card">
                 <div>
-                    <div class="card-topline">ContrÃ´le</div>
-                    <h2>Lancer ou arrÃªter AutoSender</h2>
-                    <p>DÃ©marrez l'envoi automatique une fois vos messages et groupes prÃªts.</p>
+                    <div class="card-topline">Contrôle</div>
+                    <h2>Lancer ou arrêter AutoSender</h2>
+                    <p>Démarrez l'envoi automatique une fois vos messages et groupes prêts.</p>
                 </div>
                 <div class="actions control-actions">
-                    <button class="success" onclick="enableSender()">DÃ©marrer</button>
-                    <button class="danger" onclick="disableSender()">ArrÃªter</button>
+                    <button class="success" onclick="enableSender()">Démarrer</button>
+                    <button class="danger" onclick="disableSender()">Arrêter</button>
                 </div>
             </article>
 
@@ -56,7 +56,7 @@
                 <div class="card-header">
                     <div>
                         <div class="card-topline">Nouveau message</div>
-                        <h2>Composer un envoi rÃ©current</h2>
+                        <h2>Composer un envoi récurrent</h2>
                     </div>
                 </div>
 
@@ -104,7 +104,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="customDelay">DÃ©lai personnalisÃ© (s)</label>
+                        <label for="customDelay">Délai personnalisé (s)</label>
                         <input type="number" id="customDelay" name="customDelay" placeholder="<%= config.settings?.delayBetweenMessages || 3.5 %>" min="1" step="0.1">
                     </div>
 
@@ -120,7 +120,7 @@
                 <div class="card-header">
                     <div>
                         <div class="card-topline">Inventaire</div>
-                        <h2>Messages configurÃ©s</h2>
+                        <h2>Messages configurés</h2>
                     </div>
                     <span class="badge accent"><%= config.messages ? config.messages.length : 0 %> message(s)</span>
                 </div>
@@ -132,8 +132,8 @@
                                     <th>Message</th>
                                     <th>Tokens</th>
                                     <th>Salons</th>
-                                    <th>DÃ©lai</th>
-                                    <th>Ã‰tat</th>
+                                    <th>Délai</th>
+                                    <th>�0tat</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -143,7 +143,7 @@
                                         <td><strong><%= msg.content.substring(0, 70) %><%= msg.content.length > 70 ? '...' : '' %></strong></td>
                                         <td><%= msg.useGlobalTokens ? 'Tous les tokens' : (msg.tokenGroupId || 'Aucun groupe') %></td>
                                         <td><%= msg.useGlobalChannels ? 'Tous les salons' : (msg.channelGroupId || 'Aucun groupe') %></td>
-                                        <td><%= msg.customDelay ? msg.customDelay + ' s' : 'DÃ©faut' %></td>
+                                        <td><%= msg.customDelay ? msg.customDelay + ' s' : 'Défaut' %></td>
                                         <td>
                                             <span class="badge <%= msg.enabled ? 'success' : 'danger' %>">
                                                 <%= msg.enabled ? 'Actif' : 'Inactif' %>
@@ -166,7 +166,7 @@
                         </table>
                     </div>
                 <% } else { %>
-                    <div class="empty-state">Aucun message configurÃ©.</div>
+                    <div class="empty-state">Aucun message configuré.</div>
                 <% } %>
             </article>
         </section>
