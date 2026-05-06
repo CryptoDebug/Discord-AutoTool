@@ -56,6 +56,9 @@ export class ConfigManager {
                 logErrors: true,
                 logSuccess: false
             });
+
+            await this.ensureGroupConfigShape();
+            await this.normalizeSenderConfig();
         } catch (err) {
             console.error('Erreur initialisation config:', err);
             throw err;
@@ -88,6 +91,32 @@ export class ConfigManager {
             console.error(`Erreur écriture config ${key}:`, err);
             return false;
         }
+    }
+
+    async ensureGroupConfigShape() {
+        const config = await this.read('groups');
+
+        if (!config) {
+            return null;
+        }
+
+        let changed = false;
+
+        if (!Array.isArray(config.tokenGroups)) {
+            config.tokenGroups = [];
+            changed = true;
+        }
+
+        if (!Array.isArray(config.channelGroups)) {
+            config.channelGroups = [];
+            changed = true;
+        }
+
+        if (changed) {
+            await this.write('groups', config);
+        }
+
+        return config;
     }
 
     async addToken(token, name = '', group = 'default') {
