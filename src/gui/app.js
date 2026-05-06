@@ -178,8 +178,8 @@ app.post('/api/sender/message/add', async (req, res) => {
         config.messages.push({
             id: Date.now().toString(),
             content,
-            useGlobalTokens: useGlobalTokens === 'true',
-            useGlobalChannels: useGlobalChannels === 'true',
+            useGlobalTokens: parseBoolean(useGlobalTokens),
+            useGlobalChannels: parseBoolean(useGlobalChannels),
             tokenGroupId: tokenGroupId || null,
             channelGroupId: channelGroupId || null,
             specificTokenIds: req.body.specificTokenIds || [],
@@ -188,6 +188,26 @@ app.post('/api/sender/message/add', async (req, res) => {
             enabled: true,
             createdAt: new Date().toISOString()
         });
+
+        await configManager.write('sender', config);
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/sender/message/remove', async (req, res) => {
+    try {
+        const { messageId } = req.body;
+        const config = await configManager.read('sender');
+        const initialLength = config.messages.length;
+
+        config.messages = config.messages.filter(message => message.id !== messageId);
+
+        if (config.messages.length === initialLength) {
+            res.json({ success: false, error: 'Message introuvable' });
+            return;
+        }
 
         await configManager.write('sender', config);
         res.json({ success: true });

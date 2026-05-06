@@ -414,6 +414,16 @@ form {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.sender-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: end;
+}
+
+.sender-save-action {
+    align-self: end;
+    grid-column: auto;
+}
+
 label {
     color: var(--text);
     font-size: 0.86rem;
@@ -844,6 +854,10 @@ code {
         grid-template-columns: 1fr;
     }
 
+    .sender-form {
+        grid-template-columns: 1fr;
+    }
+
     .card {
         padding: 16px;
     }
@@ -860,6 +874,8 @@ code {
     .inline-control button,
     .form-actions,
     .form-actions button,
+    .sender-save-action,
+    .sender-save-action button,
     .webhook-save-action,
     .webhook-save-action button,
     .modal-actions,
