@@ -41,7 +41,7 @@ export class ConfigManager {
                 globalChannels: [],
                 messages: [],
                 settings: {
-                    delayBetweenMessages: 3500
+                    delayBetweenMessages: 3.5
                 }
             });
 
@@ -152,6 +152,76 @@ export class ConfigManager {
         return config.tokens.filter(t => t.group === groupName);
     }
 
+    normalizeDelaySeconds(value, fallback = 3.5) {
+        const delay = Number(value);
+
+        if (!Number.isFinite(delay) || delay <= 0) {
+            return fallback;
+        }
+
+        return delay >= 1000 ? delay / 1000 : delay;
+    }
+
+    async normalizeSenderConfig() {
+        const config = await this.read('sender');
+
+        if (!config) {
+            return null;
+        }
+
+        let changed = false;
+
+        config.settings = config.settings || {};
+        const normalizedDelay = this.normalizeDelaySeconds(config.settings.delayBetweenMessages);
+        if (config.settings.delayBetweenMessages !== normalizedDelay) {
+            config.settings.delayBetweenMessages = normalizedDelay;
+            changed = true;
+        }
+
+        config.globalChannels = (config.globalChannels || []).map(channel => {
+            if (typeof channel === 'string') {
+                changed = true;
+                return {
+                    id: channel,
+                    channelId: channel,
+                    name: `Salon-${channel}`,
+                    group: 'default',
+                    createdAt: new Date().toISOString()
+                };
+            }
+
+            return {
+                id: channel.id || channel.channelId || Date.now().toString(),
+                channelId: channel.channelId || channel.id,
+                name: channel.name || `Salon-${channel.channelId || channel.id}`,
+                group: channel.group || 'default',
+                createdAt: channel.createdAt || new Date().toISOString(),
+                ...channel
+            };
+        });
+
+        config.messages = (config.messages || []).map(message => {
+            const customDelay = message.customDelay === null || message.customDelay === undefined
+                ? null
+                : this.normalizeDelaySeconds(message.customDelay);
+
+            if (message.customDelay !== customDelay) {
+                changed = true;
+            }
+
+            return {
+                ...message,
+                customDelay
+            };
+        });
+
+        if (changed) {
+            await this.write('sender', config);
+        }
+
+        return config;
+    }
+
     async addTokenGroup(groupName) {
         const config = await this.read('groups');
         if (!config.tokenGroups.includes(groupName)) {
@@ -168,6 +238,117 @@ export class ConfigManager {
         tokens.tokens = tokens.tokens.filter(t => t.group !== groupName);
         await this.write('tokens', tokens);
         await this.write('groups', config);
+        return true;
+    }
+
+    async addChannel(channelId, name = '', group = 'default') {
+        const config = await this.normalizeSenderConfig();
+        const cleanedChannelId = channelId.trim();
+
+        if (config.globalChannels.some(channel => channel.channelId === cleanedChannelId)) {
+            throw new Error('Salon déjà existant');
+        }
+
+        config.globalChannels.push({
+            id: Date.now().toString(),
+            channelId: cleanedChannelId,
+            name: name || `Salon-${cleanedChannelId}`,
+            group,
+            createdAt: new Date().toISOString()
+        });
+
+        return await this.write('sender', config);
+    }
+
+    async updateChannel(channelConfigId, updates = {}) {
+        const config = await this.normalizeSenderConfig();
+        const channelIndex = config.globalChannels.findIndex(channel => channel.id === channelConfigId);
+
+        if (channelIndex === -1) {
+            return false;
+        }
+
+        const channelId = updates.channelId?.trim();
+        if (!channelId) {
+            throw new Error('ID de salon vide');
+        }
+
+        const duplicate = config.globalChannels.some(channel =>
+            channel.id !== channelConfigId && channel.channelId === channelId
+        );
+
+        if (duplicate) {
+            throw new Error('Salon déjà existant');
+        }
+
+        const currentChannel = config.globalChannels[channelIndex];
+        config.globalChannels[channelIndex] = {
+            ...currentChannel,
+            channelId,
+            name: updates.name !== undefined ? (updates.name || currentChannel.name) : currentChannel.name,
+            group: updates.group !== undefined ? (updates.group || 'default') : currentChannel.group,
+            updatedAt: new Date().toISOString()
+        };
+
+        return await this.write('sender', config);
+    }
+
+    async removeChannel(channelConfigId) {
+        const config = await this.normalizeSenderConfig();
+        const initialLength = config.globalChannels.length;
+        config.globalChannels = config.globalChannels.filter(channel => channel.id !== channelConfigId);
+
+        if (config.globalChannels.length === initialLength) {
+            return false;
+        }
+
+        return await this.write('sender', config);
+    }
+
+    async reorderChannels(channelConfigIds = []) {
+        const config = await this.normalizeSenderConfig();
+        const channelById = new Map(config.globalChannels.map(channel => [channel.id, channel]));
+        const uniqueIds = new Set(channelConfigIds);
+
+        if (
+            uniqueIds.size !== config.globalChannels.length ||
+            channelConfigIds.some(channelConfigId => !channelById.has(channelConfigId))
+        ) {
+            return false;
+        }
+
+        config.globalChannels = channelConfigIds.map(channelConfigId => channelById.get(channelConfigId));
+        return await this.write('sender', config);
+    }
+
+    async addChannelGroup(groupName) {
+        const config = await this.read('groups');
+        const cleanedGroupName = groupName?.trim();
+
+        if (!cleanedGroupName) {
+            throw new Error('Nom de groupe vide');
+        }
+
+        config.channelGroups = config.channelGroups || [];
+
+        if (!config.channelGroups.includes(cleanedGroupName)) {
+            config.channelGroups.push(cleanedGroupName);
+            await this.write('groups', config);
+        }
+
+        return true;
+    }
+
+    async removeChannelGroup(groupName) {
+        const cleanedGroupName = groupName?.trim();
+        const groups = await this.read('groups');
+        groups.channelGroups = (groups.channelGroups || []).filter(group => group !== cleanedGroupName);
+
+        const sender = await this.normalizeSenderConfig();
+        sender.globalChannels = sender.globalChannels.filter(channel => channel.group !== cleanedGroupName);
+
+        await this.write('sender', sender);
+        await this.write('groups', groups);
         return true;
     }
 }

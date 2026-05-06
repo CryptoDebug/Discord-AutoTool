@@ -44,7 +44,7 @@ function parseBoolean(value) {
 
 app.get('/', async (req, res) => {
     const bumpConfig = await configManager.read('bump');
-    const senderConfig = await configManager.read('sender');
+    const senderConfig = await configManager.normalizeSenderConfig();
     const tokens = await configManager.read('tokens');
     
     res.render('index', {
@@ -248,7 +248,7 @@ app.post('/api/bump/disable', async (req, res) => {
 });
 
 app.get('/sender', async (req, res) => {
-    const config = await configManager.read('sender');
+    const config = await configManager.normalizeSenderConfig();
     const tokens = await configManager.read('tokens');
     const groups = await configManager.read('groups');
 
@@ -256,6 +256,7 @@ app.get('/sender', async (req, res) => {
         config,
         tokens: tokens.tokens,
         groups: groups.tokenGroups,
+        channelGroups: groups.channelGroups || [],
         isRunning,
         current: 'sender'
     });
@@ -264,7 +265,7 @@ app.get('/sender', async (req, res) => {
 app.post('/api/sender/message/add', async (req, res) => {
     try {
         const { content, useGlobalTokens, useGlobalChannels, tokenGroupId, channelGroupId } = req.body;
-        const config = await configManager.read('sender');
+        const config = await configManager.normalizeSenderConfig();
         
         config.messages.push({
             id: Date.now().toString(),
@@ -275,7 +276,7 @@ app.post('/api/sender/message/add', async (req, res) => {
             channelGroupId: channelGroupId || null,
             specificTokenIds: req.body.specificTokenIds || [],
             specificChannelIds: req.body.specificChannelIds || [],
-            customDelay: req.body.customDelay ? parseInt(req.body.customDelay) : null,
+            customDelay: req.body.customDelay ? configManager.normalizeDelaySeconds(req.body.customDelay) : null,
             enabled: true,
             createdAt: new Date().toISOString()
         });
@@ -309,7 +310,7 @@ app.post('/api/sender/message/remove', async (req, res) => {
 
 app.post('/api/sender/enable', async (req, res) => {
     try {
-        const config = await configManager.read('sender');
+        const config = await configManager.normalizeSenderConfig();
         config.enabled = true;
         await configManager.write('sender', config);
         
@@ -326,7 +327,7 @@ app.post('/api/sender/enable', async (req, res) => {
 
 app.post('/api/sender/disable', async (req, res) => {
     try {
-        const config = await configManager.read('sender');
+        const config = await configManager.normalizeSenderConfig();
         config.enabled = false;
         await configManager.write('sender', config);
         
@@ -354,6 +355,111 @@ app.post('/api/tokens/add', async (req, res) => {
     try {
         const { token, name, group } = req.body;
         await configManager.addToken(token, name, group || 'default');
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+app.get('/channels', async (req, res) => {
+    const sender = await configManager.normalizeSenderConfig();
+    const groups = await configManager.read('groups');
+
+    res.render('channels', {
+        channels: sender.globalChannels || [],
+        groups,
+        current: 'channels'
+    });
+});
+
+app.post('/api/channels/add', async (req, res) => {
+    try {
+        const { channelId, name, group } = req.body;
+
+        if (!channelId || !channelId.trim()) {
+            res.json({ success: false, error: 'ID de salon obligatoire' });
+            return;
+        }
+
+        await configManager.addChannel(channelId, name?.trim(), group || 'default');
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/channels/update', async (req, res) => {
+    try {
+        const { channelConfigId, channelId, name, group } = req.body;
+        const updated = await configManager.updateChannel(channelConfigId, {
+            channelId,
+            name: name?.trim(),
+            group: group?.trim() || 'default'
+        });
+
+        if (!updated) {
+            res.json({ success: false, error: 'Salon introuvable' });
+            return;
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/channels/remove', async (req, res) => {
+    try {
+        const { channelConfigId } = req.body;
+        const removed = await configManager.removeChannel(channelConfigId);
+
+        if (!removed) {
+            res.json({ success: false, error: 'Salon introuvable' });
+            return;
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/channels/reorder', async (req, res) => {
+    try {
+        const { channelConfigIds } = req.body;
+
+        if (!Array.isArray(channelConfigIds)) {
+            res.json({ success: false, error: 'Ordre invalide' });
+            return;
+        }
+
+        const reordered = await configManager.reorderChannels(channelConfigIds);
+
+        if (!reordered) {
+            res.json({ success: false, error: 'Liste de salons invalide' });
+            return;
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/channels/group/create', async (req, res) => {
+    try {
+        const { groupName } = req.body;
+        await configManager.addChannelGroup(groupName);
+        res.json({ success: true });
+    } catch (err) {
+        res.json({ success: false, error: err.message });
+    }
+});
+
+app.post('/api/channels/group/delete', async (req, res) => {
+    try {
+        const { groupName } = req.body;
+        await configManager.removeChannelGroup(groupName);
         res.json({ success: true });
     } catch (err) {
         res.json({ success: false, error: err.message });

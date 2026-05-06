@@ -19,7 +19,7 @@ export class AutoSender {
     }
 
     async startSending() {
-        const config = await this.configManager.read('sender');
+        const config = await this.configManager.normalizeSenderConfig();
         const tokensConfig = await this.configManager.read('tokens');
 
         if (!config.enabled || !config.messages || config.messages.length === 0) {
@@ -43,7 +43,7 @@ export class AutoSender {
 
             let channelsToUse = [];
             if (message.useGlobalChannels) {
-                channelsToUse = config.globalChannels;
+                channelsToUse = this.resolveChannelIds(config.globalChannels);
             } else if (message.channelGroupId) {
                 channelsToUse = this.getChannelsByGroup(config, message.channelGroupId);
             } else {
@@ -57,8 +57,21 @@ export class AutoSender {
     }
 
     getChannelsByGroup(config, groupId) {
-        const group = config.channelGroups?.find(g => g.id === groupId);
-        return group?.channels || [];
+        const channels = (config.globalChannels || [])
+            .filter(channel => channel.group === groupId);
+
+        if (channels.length > 0) {
+            return this.resolveChannelIds(channels);
+        }
+
+        const legacyGroup = config.channelGroups?.find(group => group.id === groupId || group.name === groupId);
+        return this.resolveChannelIds(legacyGroup?.channels || []);
+    }
+
+    resolveChannelIds(channels = []) {
+        return channels
+            .map(channel => typeof channel === 'string' ? channel : channel.channelId || channel.id)
+            .filter(Boolean);
     }
 
     async startSendingForToken(message, token, channels, settings) {
@@ -110,7 +123,7 @@ export class AutoSender {
                 await this.sendMessage(client, message, channelId);
                 
                 const delay = this.calculateDelay(message, {
-                    delayBetweenMessages: 3500
+                    delayBetweenMessages: 3.5
                 });
                 await new Promise(res => setTimeout(res, delay));
             }
@@ -180,11 +193,18 @@ export class AutoSender {
     }
 
     calculateDelay(message, settings) {
+        const delayInSeconds = Number(message.customDelay || settings.delayBetweenMessages || 3.5);
+        const normalizedSeconds = Number.isFinite(delayInSeconds) && delayInSeconds > 0 ? delayInSeconds : 3.5;
+
+        return normalizedSeconds * 1000;
+    }
+
+    calculateDelaySeconds(message, settings) {
         if (message.customDelay) {
             return message.customDelay;
         }
 
-        return settings.delayBetweenMessages || 3500;
+        return settings.delayBetweenMessages || 3.5;
     }
 
     replacePlaceholders(content) {
