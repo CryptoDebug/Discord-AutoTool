@@ -410,6 +410,10 @@ form {
     align-self: end;
 }
 
+.compact-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 label {
     color: var(--text);
     font-size: 0.86rem;
@@ -836,6 +840,10 @@ code {
         grid-template-columns: 1fr;
     }
 
+    .compact-form {
+        grid-template-columns: 1fr;
+    }
+
     .card {
         padding: 16px;
     }
@@ -850,6 +858,8 @@ code {
     .control-actions,
     .control-actions button,
     .inline-control button,
+    .form-actions,
+    .form-actions button,
     .webhook-save-action,
     .webhook-save-action button,
     .modal-actions,

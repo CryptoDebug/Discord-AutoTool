@@ -15,62 +15,86 @@
             <div>
                 <div class="section-kicker">AutoBump</div>
                 <h2>Serveurs et planification</h2>
-                <p>Réglez les délais, associez les serveurs aux tokens et démarrez le bump automatique.</p>
+                <p>Associez vos serveurs aux tokens, ajustez les delais et gardez le bump automatique sous controle.</p>
             </div>
             <span class="badge <%= config.enabled ? 'success' : 'danger' %>"><%= config.enabled ? 'Actif' : 'Inactif' %></span>
+        </section>
+
+        <section class="stats-grid">
+            <div class="stat">
+                <div class="stat-value"><%= config.servers ? config.servers.length : 0 %></div>
+                <div class="stat-label">serveur(s)</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value"><%= tokens ? tokens.length : 0 %></div>
+                <div class="stat-label">token(s)</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value"><%= config.settings.maxServersPerToken %></div>
+                <div class="stat-label">serveurs max / token</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value"><%= config.settings.humanize ? config.settings.humanizeMin + '-' + config.settings.humanizeMax : 'OFF' %></div>
+                <div class="stat-label">delai aleatoire (min)</div>
+            </div>
         </section>
 
         <section class="main-content">
             <article class="card span-full control-card">
                 <div>
-                    <div class="card-topline">Contrôle</div>
-                    <h2>Lancer ou arrêter AutoBump</h2>
+                    <div class="card-topline">Controle</div>
+                    <h2>Lancer ou arreter AutoBump</h2>
+                    <p>Demarrez le cycle automatique quand vos serveurs et tokens sont prets.</p>
                 </div>
                 <div class="actions control-actions">
-                    <button id="enableBtn" class="success" onclick="enableBump()">Démarrer</button>
-                    <button id="disableBtn" class="danger" onclick="disableBump()">Arrêter</button>
+                    <button id="enableBtn" class="success" onclick="enableBump()">Demarrer</button>
+                    <button id="disableBtn" class="danger" onclick="disableBump()">Arreter</button>
                 </div>
             </article>
 
-            <article class="card span-full">
+            <article class="card">
                 <div class="card-header">
                     <div>
-                        <div class="card-topline">Paramètres</div>
-                        <h2>Comportement général</h2>
+                        <div class="card-topline">Parametres</div>
+                        <h2>Rythme de bump</h2>
                     </div>
                 </div>
-                <form id="bumpSettingsForm" class="form-grid">
-                    <div class="form-group">
-                        <label for="humanize">Humanisation</label>
+                <form id="bumpSettingsForm" class="form-grid compact-form">
+                    <div class="form-group span-full">
+                        <label for="humanize">Delai aleatoire</label>
                         <select id="humanize" name="humanize">
-                            <option value="true" <%= config.settings.humanize ? 'selected' : '' %>>Activée avec délai aléatoire</option>
-                            <option value="false" <%= !config.settings.humanize ? 'selected' : '' %>>Désactivée</option>
+                            <option value="true" <%= config.settings.humanize ? 'selected' : '' %>>Activer</option>
+                            <option value="false" <%= !config.settings.humanize ? 'selected' : '' %>>Desactiver</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="humanizeMin">Minimum en minutes</label>
+                        <label for="humanizeMin">Minimum</label>
                         <input type="number" id="humanizeMin" name="humanizeMin" value="<%= config.settings.humanizeMin %>" min="1">
                     </div>
                     <div class="form-group">
-                        <label for="humanizeMax">Maximum en minutes</label>
+                        <label for="humanizeMax">Maximum</label>
                         <input type="number" id="humanizeMax" name="humanizeMax" value="<%= config.settings.humanizeMax %>" min="1">
                     </div>
-                    <div class="form-group">
-                        <label for="maxServersPerToken">Serveurs max par token</label>
+                    <div class="form-group span-full">
+                        <label for="maxServersPerToken">Serveurs maximum par token</label>
                         <input type="number" id="maxServersPerToken" name="maxServersPerToken" value="<%= config.settings.maxServersPerToken %>" min="1">
                     </div>
-                    <button type="submit">Enregistrer</button>
+                    <div class="form-actions span-full">
+                        <button type="submit">Enregistrer</button>
+                    </div>
                 </form>
+                <div class="modal-error" id="settingsError" hidden></div>
+                <div class="alert alert-success" id="settingsSuccess" hidden>Parametres enregistres.</div>
             </article>
 
-            <article class="card span-full">
+            <article class="card">
                 <div class="card-header">
                     <div>
-                        <div class="card-topline">Configuration</div>
-                        <h2>Ajouter un serveur bump</h2>
+                        <div class="card-topline">Serveur</div>
+                        <h2>Ajouter une cible</h2>
                     </div>
                 </div>
-                <form id="addServerForm" class="form-grid">
+                <form id="addServerForm" class="form-grid compact-form">
                     <div class="form-group">
                         <label for="serverId">ID serveur</label>
                         <input type="text" id="serverId" name="serverId" placeholder="123456789" required>
@@ -79,28 +103,31 @@
                         <label for="bumpChannelId">ID salon bump</label>
                         <input type="text" id="bumpChannelId" name="bumpChannelId" placeholder="987654321" required>
                     </div>
-                    <div class="form-group">
-                        <label for="tokenId">Token à utiliser</label>
+                    <div class="form-group span-full">
+                        <label for="tokenId">Token a utiliser</label>
                         <select id="tokenId" name="tokenId" required>
-                            <option value="">Sélectionner un token</option>
+                            <option value="">Selectionner un token</option>
                             <% tokens.forEach(token => { %>
                                 <option value="<%= token.id %>"><%= token.name %> (<%= token.group %>)</option>
                             <% }); %>
                         </select>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group span-full">
                         <label for="serverName">Nom du serveur</label>
                         <input type="text" id="serverName" name="name" placeholder="Mon serveur">
                     </div>
-                    <button type="submit">Ajouter</button>
+                    <div class="form-actions span-full">
+                        <button type="submit">Ajouter</button>
+                    </div>
                 </form>
+                <div class="modal-error" id="serverError" hidden></div>
             </article>
 
             <article class="card span-full">
                 <div class="card-header">
                     <div>
                         <div class="card-topline">Inventaire</div>
-                        <h2>Serveurs configurés</h2>
+                        <h2>Serveurs configures</h2>
                     </div>
                     <span class="badge accent"><%= config.servers ? config.servers.length : 0 %> serveur(s)</span>
                 </div>
@@ -111,9 +138,9 @@
                                 <tr>
                                     <th>Nom</th>
                                     <th>ID serveur</th>
-                                    <th>Salon</th>
+                                    <th>Salon bump</th>
                                     <th>Token</th>
-                                    <th>État</th>
+                                    <th>Etat</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -125,7 +152,7 @@
                                         <td><strong><%= server.name %></strong></td>
                                         <td><code><%= server.serverId %></code></td>
                                         <td><code><%= server.bumpChannelId %></code></td>
-                                        <td><%= token ? token.name : 'N/A' %></td>
+                                        <td><%= token ? token.name : 'Token introuvable' %></td>
                                         <td>
                                             <span class="badge <%= server.enabled ? 'success' : 'danger' %>">
                                                 <%= server.enabled ? 'Actif' : 'Inactif' %>
@@ -133,7 +160,13 @@
                                         </td>
                                         <td>
                                             <div class="actions">
-                                                <button type="button" class="danger" onclick="removeServer('<%= server.id %>')">Supprimer</button>
+                                                <button
+                                                    type="button"
+                                                    class="danger"
+                                                    data-server-id="<%= server.id %>"
+                                                    data-server-name="<%= server.name %>"
+                                                    onclick="openDeleteServerModal(this)"
+                                                >Supprimer</button>
                                             </div>
                                         </td>
                                     </tr>
@@ -142,67 +175,142 @@
                         </table>
                     </div>
                 <% } else { %>
-                    <div class="empty-state">Aucun serveur configuré.</div>
+                    <div class="empty-state">Aucun serveur configure.</div>
                 <% } %>
             </article>
-
         </section>
     </main>
+
+    <div class="modal-overlay" id="deleteServerModal" hidden>
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="deleteServerTitle">
+            <div class="modal-header">
+                <div>
+                    <div class="card-topline">Suppression</div>
+                    <h2 id="deleteServerTitle">Supprimer le serveur</h2>
+                </div>
+                <button type="button" class="ghost-button" onclick="closeDeleteServerModal()" aria-label="Fermer">&times;</button>
+            </div>
+            <p class="modal-copy">
+                Vous allez retirer <strong id="deleteServerName">ce serveur</strong> de la liste AutoBump.
+            </p>
+            <input type="hidden" id="deleteServerId">
+            <div class="modal-error" id="deleteServerError" hidden></div>
+            <div class="modal-actions">
+                <button type="button" class="secondary-button" onclick="closeDeleteServerModal()">Annuler</button>
+                <button type="button" class="danger" onclick="confirmDeleteServer()">Supprimer</button>
+            </div>
+        </div>
+    </div>
 
     <%- include('footer') %>
 
     <script>
+        const settingsError = document.getElementById('settingsError');
+        const settingsSuccess = document.getElementById('settingsSuccess');
+        const serverError = document.getElementById('serverError');
+        const deleteServerModal = document.getElementById('deleteServerModal');
+        const deleteServerError = document.getElementById('deleteServerError');
+
+        function showInlineMessage(target, message) {
+            target.textContent = message;
+            target.hidden = false;
+        }
+
+        function hideInlineMessages() {
+            settingsError.hidden = true;
+            settingsSuccess.hidden = true;
+            serverError.hidden = true;
+            deleteServerError.hidden = true;
+        }
+
         document.getElementById('bumpSettingsForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const data = new FormData(e.target);
+            hideInlineMessages();
+
+            const data = Object.fromEntries(new FormData(e.target));
             const res = await fetch('/api/bump/config', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(Object.fromEntries(data))
+                body: JSON.stringify(data)
             });
             const result = await res.json();
-            alert(result.success ? 'Paramètres enregistrés !' : 'Erreur: ' + result.error);
+
+            if (result.success) {
+                showInlineMessage(settingsSuccess, 'Parametres enregistres.');
+            } else {
+                showInlineMessage(settingsError, 'Erreur: ' + result.error);
+            }
         });
 
         document.getElementById('addServerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const data = new FormData(e.target);
+            hideInlineMessages();
+
+            const data = Object.fromEntries(new FormData(e.target));
             const res = await fetch('/api/bump/server/add', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(Object.fromEntries(data))
+                body: JSON.stringify(data)
             });
             const result = await res.json();
+
             if (result.success) {
-                alert('Serveur ajouté !');
                 location.reload();
             } else {
-                alert('Erreur: ' + result.error);
+                showInlineMessage(serverError, 'Erreur: ' + result.error);
             }
         });
 
-        async function removeServer(serverId) {
-            if (confirm('Êtes-vous sûr ?')) {
-                const res = await fetch('/api/bump/server/remove', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ serverId })
-                });
-                const result = await res.json();
-                if (result.success) {
-                    location.reload();
-                } else {
-                    alert('Erreur: ' + result.error);
-                }
+        function openDeleteServerModal(button) {
+            document.getElementById('deleteServerId').value = button.dataset.serverId;
+            document.getElementById('deleteServerName').textContent = button.dataset.serverName || 'ce serveur';
+            deleteServerError.hidden = true;
+            deleteServerError.textContent = '';
+            deleteServerModal.hidden = false;
+        }
+
+        function closeDeleteServerModal() {
+            deleteServerModal.hidden = true;
+            document.getElementById('deleteServerId').value = '';
+            deleteServerError.hidden = true;
+            deleteServerError.textContent = '';
+        }
+
+        async function confirmDeleteServer() {
+            const serverId = document.getElementById('deleteServerId').value;
+            const res = await fetch('/api/bump/server/remove', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ serverId })
+            });
+            const result = await res.json();
+
+            if (result.success) {
+                location.reload();
+            } else {
+                showInlineMessage(deleteServerError, 'Erreur: ' + result.error);
             }
         }
+
+        deleteServerModal.addEventListener('click', (e) => {
+            if (e.target === deleteServerModal) {
+                closeDeleteServerModal();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !deleteServerModal.hidden) {
+                closeDeleteServerModal();
+            }
+        });
 
         async function enableBump() {
             const res = await fetch('/api/bump/enable', { method: 'POST' });
             const result = await res.json();
             if (result.success) {
-                alert('Bump démarré !');
                 location.reload();
+            } else {
+                showInlineMessage(settingsError, 'Erreur: ' + result.error);
             }
         }
 
@@ -210,8 +318,9 @@
             const res = await fetch('/api/bump/disable', { method: 'POST' });
             const result = await res.json();
             if (result.success) {
-                alert('Bump arrêté !');
                 location.reload();
+            } else {
+                showInlineMessage(settingsError, 'Erreur: ' + result.error);
             }
         }
     </script>
