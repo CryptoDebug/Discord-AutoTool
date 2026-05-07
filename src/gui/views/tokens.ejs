@@ -547,10 +547,11 @@
         function showJoinCaptcha(captcha) {
             const lines = [
                 `Service: ${captcha.service || 'hcaptcha'}`,
-                `Sitekey: ${captcha.sitekey || 'non fourni'}`,
+                `Sitekey: ${captcha.sitekey || 'non fourni'}${captcha.sitekeyFallback ? ' (fallback Discord)' : ''}`,
                 captcha.rqdata ? `rqdata: ${captcha.rqdata}` : null,
                 captcha.rqtoken ? `rqtoken: ${captcha.rqtoken}` : null,
-                captcha.userAgent ? `User-Agent: ${captcha.userAgent}` : null
+                captcha.userAgent ? `User-Agent: ${captcha.userAgent}` : null,
+                captcha.raw ? `Payload brut: ${JSON.stringify(captcha.raw, null, 2)}` : null
             ].filter(Boolean);
 
             joinCaptchaInfo.value = lines.join('\n');
