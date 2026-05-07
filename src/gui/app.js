@@ -38,7 +38,6 @@ const autoSender = new AutoSender();
 const logger = new Logger();
 
 let isRunning = false;
-const DISCORD_HCAPTCHA_SITEKEY = 'f5561ba9-8f1e-40ca-9b5b-a0b3f719ef34';
 
 function parseBoolean(value) {
     return value === true || value === 'true' || value === 'on';
@@ -63,16 +62,16 @@ function formatCaptchaPayload(err) {
         captcha.sitekey ||
         captcha.captcha_site_key ||
         captcha.hcaptcha_sitekey ||
-        DISCORD_HCAPTCHA_SITEKEY;
+        '';
 
     return {
         service: captcha.captcha_service || captcha.service || 'hcaptcha',
         sitekey,
-        sitekeyFallback: sitekey === DISCORD_HCAPTCHA_SITEKEY && !captcha.captcha_sitekey,
         rqdata: captcha.captcha_rqdata || captcha.rqdata || '',
         rqtoken: captcha.captcha_rqtoken || captcha.rqtoken || '',
         userAgent: err.userAgent || '',
-        raw: captcha
+        raw: captcha,
+        manualOnly: true
     };
 }
 
@@ -676,7 +675,7 @@ app.post('/api/tokens/join', async (req, res) => {
                 success: false,
                 requiresCaptcha: true,
                 captcha: formatCaptchaPayload(err),
-                error: 'Captcha requis. Renseignez la reponse hCaptcha puis relancez.'
+                error: 'Discord demande un hCaptcha. Ce challenge doit etre resolu dans Discord, pas dans cet outil.'
             });
             return;
         }

@@ -260,12 +260,8 @@
                     <input type="text" id="joinInvite" name="invite" placeholder="https://discord.gg/..." required>
                 </div>
                 <div class="form-group span-full" id="joinCaptchaDetails" hidden>
-                    <label for="joinCaptchaInfo">Captcha hCaptcha</label>
+                    <label for="joinCaptchaInfo">Blocage hCaptcha</label>
                     <textarea id="joinCaptchaInfo" rows="5" readonly></textarea>
-                </div>
-                <div class="form-group span-full" id="joinCaptchaField" hidden>
-                    <label for="joinCaptchaKey">Reponse captcha</label>
-                    <input type="text" id="joinCaptchaKey" name="captchaKey" placeholder="Collez la reponse hCaptcha">
                 </div>
                 <div class="modal-error span-full" id="joinTokenError" hidden></div>
                 <div class="alert alert-success span-full" id="joinTokenSuccess" hidden></div>
@@ -291,9 +287,7 @@
         const joinTokenError = document.getElementById('joinTokenError');
         const joinTokenSuccess = document.getElementById('joinTokenSuccess');
         const joinCaptchaDetails = document.getElementById('joinCaptchaDetails');
-        const joinCaptchaField = document.getElementById('joinCaptchaField');
         const joinCaptchaInfo = document.getElementById('joinCaptchaInfo');
-        const joinCaptchaKey = document.getElementById('joinCaptchaKey');
         const joinTokenSubmit = document.getElementById('joinTokenSubmit');
         const tokensTableBody = document.getElementById('tokensTableBody');
         const tokenOrderError = document.getElementById('tokenOrderError');
@@ -521,9 +515,7 @@
             joinTokenSuccess.hidden = true;
             joinTokenSuccess.textContent = '';
             joinCaptchaDetails.hidden = true;
-            joinCaptchaField.hidden = true;
             joinCaptchaInfo.value = '';
-            joinCaptchaKey.value = '';
             joinTokenSubmit.textContent = 'Rejoindre';
             joinTokenModal.hidden = false;
             document.getElementById('joinInvite').focus();
@@ -537,17 +529,19 @@
             joinTokenSuccess.hidden = true;
             joinTokenSuccess.textContent = '';
             joinCaptchaDetails.hidden = true;
-            joinCaptchaField.hidden = true;
             joinCaptchaInfo.value = '';
-            joinCaptchaKey.value = '';
             joinTokenSubmit.disabled = false;
             joinTokenSubmit.textContent = 'Rejoindre';
         }
 
         function showJoinCaptcha(captcha) {
             const lines = [
+                'Discord demande un hCaptcha pour cette invitation.',
+                "L'outil ne peut pas obtenir une reponse hCaptcha depuis ces donnees.",
+                'Il faut rejoindre ce serveur depuis le client Discord ou le navigateur officiel avec le compte concerne.',
+                '',
                 `Service: ${captcha.service || 'hcaptcha'}`,
-                `Sitekey: ${captcha.sitekey || 'non fourni'}${captcha.sitekeyFallback ? ' (fallback Discord)' : ''}`,
+                `Sitekey: ${captcha.sitekey || 'non fourni'}`,
                 captcha.rqdata ? `rqdata: ${captcha.rqdata}` : null,
                 captcha.rqtoken ? `rqtoken: ${captcha.rqtoken}` : null,
                 captcha.userAgent ? `User-Agent: ${captcha.userAgent}` : null,
@@ -556,9 +550,8 @@
 
             joinCaptchaInfo.value = lines.join('\n');
             joinCaptchaDetails.hidden = false;
-            joinCaptchaField.hidden = false;
-            joinCaptchaKey.focus();
-            joinTokenSubmit.textContent = 'Valider le captcha';
+            joinTokenSubmit.textContent = 'Bloque par captcha';
+            joinTokenSubmit.disabled = true;
         }
 
         joinTokenForm.addEventListener('submit', async (e) => {
@@ -581,8 +574,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         tokenId: data.tokenId,
-                        invite: data.invite.trim(),
-                        captchaKey: data.captchaKey?.trim()
+                        invite: data.invite.trim()
                     })
                 });
 
