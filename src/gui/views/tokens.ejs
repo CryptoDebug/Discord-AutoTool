@@ -267,6 +267,7 @@
                 <div class="alert alert-success span-full" id="joinTokenSuccess" hidden></div>
                 <div class="modal-actions span-full">
                     <button type="button" class="secondary-button" onclick="closeJoinTokenModal()">Annuler</button>
+                    <button type="button" class="secondary-button" id="joinOpenInviteBtn" onclick="openJoinInviteManually()" hidden>Ouvrir l'invitation</button>
                     <button type="submit" id="joinTokenSubmit">Rejoindre</button>
                 </div>
             </form>
@@ -289,6 +290,7 @@
         const joinCaptchaDetails = document.getElementById('joinCaptchaDetails');
         const joinCaptchaInfo = document.getElementById('joinCaptchaInfo');
         const joinTokenSubmit = document.getElementById('joinTokenSubmit');
+        const joinOpenInviteBtn = document.getElementById('joinOpenInviteBtn');
         const tokensTableBody = document.getElementById('tokensTableBody');
         const tokenOrderError = document.getElementById('tokenOrderError');
         let draggedTokenRow = null;
@@ -517,6 +519,8 @@
             joinCaptchaDetails.hidden = true;
             joinCaptchaInfo.value = '';
             joinTokenSubmit.textContent = 'Rejoindre';
+            joinTokenSubmit.disabled = false;
+            joinOpenInviteBtn.hidden = true;
             joinTokenModal.hidden = false;
             document.getElementById('joinInvite').focus();
         }
@@ -532,13 +536,40 @@
             joinCaptchaInfo.value = '';
             joinTokenSubmit.disabled = false;
             joinTokenSubmit.textContent = 'Rejoindre';
+            joinOpenInviteBtn.hidden = true;
+        }
+
+        function normalizeInviteUrl(invite) {
+            const value = invite.trim();
+            if (!value) {
+                return '';
+            }
+
+            if (/^https?:\/\//i.test(value)) {
+                return value;
+            }
+
+            const match = value.match(/(?:discord\.gg\/|discord(?:app)?\.com\/invite\/)?([a-zA-Z0-9-]+)/);
+            const code = match ? match[1] : value;
+            return `https://discord.gg/${code}`;
+        }
+
+        function openJoinInviteManually() {
+            const inviteUrl = normalizeInviteUrl(document.getElementById('joinInvite').value);
+            if (!inviteUrl) {
+                joinTokenError.textContent = "Le lien d'invitation est obligatoire.";
+                joinTokenError.hidden = false;
+                return;
+            }
+
+            window.open(inviteUrl, '_blank', 'noopener,noreferrer');
         }
 
         function showJoinCaptcha(captcha) {
             const lines = [
                 'Discord demande un hCaptcha pour cette invitation.',
                 "L'outil ne peut pas obtenir une reponse hCaptcha depuis ces donnees.",
-                'Il faut rejoindre ce serveur depuis le client Discord ou le navigateur officiel avec le compte concerne.',
+                "Utilisez le bouton Ouvrir l'invitation, puis connectez-vous au compte concerne dans Discord ou le navigateur officiel.",
                 '',
                 `Service: ${captcha.service || 'hcaptcha'}`,
                 `Sitekey: ${captcha.sitekey || 'non fourni'}`,
@@ -552,6 +583,7 @@
             joinCaptchaDetails.hidden = false;
             joinTokenSubmit.textContent = 'Bloque par captcha';
             joinTokenSubmit.disabled = true;
+            joinOpenInviteBtn.hidden = false;
         }
 
         joinTokenForm.addEventListener('submit', async (e) => {
@@ -559,6 +591,7 @@
             joinTokenError.hidden = true;
             joinTokenSuccess.hidden = true;
             joinTokenSubmit.disabled = true;
+            joinOpenInviteBtn.hidden = true;
 
             const data = Object.fromEntries(new FormData(joinTokenForm));
             if (!data.invite.trim()) {
@@ -606,7 +639,9 @@
                 joinTokenError.textContent = err.message || 'Impossible de rejoindre le serveur.';
                 joinTokenError.hidden = false;
             } finally {
-                joinTokenSubmit.disabled = false;
+                if (joinOpenInviteBtn.hidden) {
+                    joinTokenSubmit.disabled = false;
+                }
             }
         });
 
