@@ -675,7 +675,9 @@ app.post('/api/tokens/join', async (req, res) => {
                 success: false,
                 requiresCaptcha: true,
                 captcha: formatCaptchaPayload(err),
-                error: 'Discord demande un hCaptcha. Ce challenge doit etre resolu dans Discord, pas dans cet outil.'
+                tokenValue: selectedToken.token,
+                invite: invite.trim(),
+                error: 'Discord demande une verification captcha. Utilisez "Rejoindre manuellement".'
             });
             return;
         }
@@ -708,6 +710,94 @@ app.post('/api/tokens/group/delete', async (req, res) => {
     } catch (err) {
         res.json({ success: false, error: err.message });
     }
+});
+
+app.get('/discord-bridge', (req, res) => {
+    const { token, invite } = req.query;
+
+    if (!token) {
+        res.status(400).send('Token requis');
+        return;
+    }
+
+    let inviteUrl = 'https://discord.com/channels/@me';
+    if (invite) {
+        const code = String(invite).replace(/^https:\/\/(discord\.gg\/|discord(?:app)?\.com\/invite\/)/, '');
+        inviteUrl = `https://discord.gg/${code}`;
+    }
+
+    const safeToken = JSON.stringify(String(token)).replace(/</g, '\\u003c');
+    const safeInviteUrl = JSON.stringify(inviteUrl).replace(/</g, '\\u003c');
+
+    res.send(`
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion Discord Auto</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #36393f; color: #fff; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
+        .container { text-align: center; max-width: 480px; }
+        h1 { font-size: 24px; margin-bottom: 16px; color: #fff; }
+        .info { color: #b9bbbe; line-height: 1.6; margin-bottom: 24px; font-size: 14px; }
+        .warning { background: #faa61a; color: #000; padding: 12px 16px; border-radius: 4px; font-size: 13px; margin-bottom: 20px; text-align: left; }
+        button { background: #5865f2; color: white; border: none; padding: 16px 32px; font-size: 16px; font-weight: 600; border-radius: 4px; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #4752c4; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .note { margin-top: 20px; font-size: 12px; color: #72767d; }
+        .hidden { display: none; }
+        #status { margin-top: 16px; color: #3ba55d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Connexion automatique</h1>
+        <div class="warning">
+            <strong>Prive</strong><br>
+            Pour ouvrir en navigation privee :<br>
+            - Chrome/Edge : Clic droit -> "Ouvrir le lien dans une fenetre privee"<br>
+            - Firefox : Clic droit -> "Ouvrir le lien dans une nouvelle fenetre privee"<br>
+            - Safari : Cmd+Maj+N, puis copiez cette URL
+        </div>
+        <div class="info">
+            Cliquez ci-dessous pour injecter automatiquement le token Discord et rejoindre le serveur.
+        </div>
+        <button id="btn" onclick="doLogin()">Se connecter et rejoindre</button>
+        <div id="status" class="hidden"></div>
+        <div class="note">
+            Apres connexion, vous serez redirige vers Discord ou il faudra probablement accepter le captcha manuellement.
+        </div>
+    </div>
+
+    <script>
+        function doLogin() {
+            const btn = document.getElementById('btn');
+            const status = document.getElementById('status');
+
+            btn.disabled = true;
+            btn.textContent = 'Connexion en cours...';
+
+            try {
+                const token = ${safeToken};
+                window.localStorage.setItem('token', JSON.stringify(token));
+
+                status.textContent = 'Token injecte, redirection...';
+                status.classList.remove('hidden');
+
+                setTimeout(() => {
+                    window.location.href = ${safeInviteUrl};
+                }, 500);
+            } catch (e) {
+                btn.disabled = false;
+                btn.textContent = 'Erreur - Reessayer';
+                alert('Erreur: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>`);
 });
 
 app.get('/webhooks', async (req, res) => {
